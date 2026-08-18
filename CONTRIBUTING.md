@@ -15,6 +15,15 @@ Issue 만들기 → develop에서 브랜치 따기 → 작업 → 커밋 → PR(
 - 커밋 메시지: `Feat: LMS 일정 불러오기 구현 (#12)`
 - 브랜치 이름: `feat/lms-calendar-import-#12`
 
+**이 문서는 협업 규칙만 다룹니다.** 나머지는 여기로.
+
+| 찾는 것 | 문서 |
+|---|---|
+| 기획 · 7명 역할 · 2일 일정 · 미확정 사항 | [docs/PLANNING.md](docs/PLANNING.md) |
+| 기능별 구현 범위 · 완료 조건 — **Issue의 원본** | [docs/FEATURES.md](docs/FEATURES.md) |
+| API 요청·응답 계약 | [docs/api.md](docs/api.md) |
+| 실행 방법 | [frontend/README.md](frontend/README.md) · [backend/README.md](backend/README.md) |
+
 ---
 
 ## 1. 브랜치 구조
@@ -59,7 +68,7 @@ fix/calendar-date-error-#18
 refactor/event-parser-#23
 ```
 
-- `type`은 커밋 Type과 같은 뜻으로 씁니다: `feat` `fix` `refactor` `docs` `chore`
+- `type`은 커밋 Type과 같은 뜻으로 씁니다: `feat` `fix` `refactor` `docs` `chore` `hotfix`
 - 내용은 **소문자 + 하이픈**으로 씁니다. 한글·공백·대문자는 쓰지 않습니다.
 - Issue를 만들 정도가 아닌 잔작업이라면 `-#번호`는 **생략해도 됩니다.**
 
@@ -97,6 +106,9 @@ Docs: API 계약서에 팀 조회 엔드포인트 추가 (#21)
 
 ## 5. Issue
 
+**Issue 내용은 [docs/FEATURES.md](docs/FEATURES.md)에서 가져옵니다.** 처음부터 쓰지 마세요.
+해당 기능 섹션의 **목표 / 구현 범위 / 완료 조건**을 그대로 옮겨 붙이고, 발급된 번호를 FEATURES의 `Issue` 칸에 적습니다.
+
 - **작업 단위 하나 = Issue 하나.** 하루 안에 끝나지 않을 것 같으면 쪼갭니다.
 - 템플릿 두 종류가 있습니다: **기능 개발** / **버그**
 - Milestone에 `Day 1` 또는 `Day 2`를 지정합니다. 진행률이 자동으로 집계됩니다.
@@ -112,6 +124,10 @@ Docs: API 계약서에 팀 조회 엔드포인트 추가 (#21)
 
 > **배포 PR만 Merge Commit인 이유**: `develop → main`을 Squash하면 `main`에 `develop`에는 없는 새 커밋이 생겨
 > 두 브랜치의 히스토리가 갈라지고, 다음 배포 PR에서 같은 변경이 중복 diff·충돌로 되돌아옵니다.
+>
+> ⚠️ **GitHub은 이걸 막아주지 않습니다.** `main`으로 가는 PR에는 Squash 버튼도 그대로 보입니다.
+> `hotfix → main`은 Squash가 맞고 `develop → main`은 Merge Commit이 맞는데 둘 다 대상이 `main`이라,
+> 소스 브랜치별로 머지 방식을 강제할 방법이 없습니다. **버튼을 누르기 전에 한 번 더 확인하세요.**
 
 - 템플릿 4칸(관련 Issue / 변경 내용 / 확인 방법 / 스크린샷)을 채웁니다.
 - `Closes #12` 를 넣으면 머지될 때 Issue가 자동으로 닫힙니다.
@@ -121,8 +137,10 @@ Docs: API 계약서에 팀 조회 엔드포인트 추가 (#21)
 
 ## 7. 리뷰 / 머지
 
-- 리뷰어로 **팀원 1명을 지정**하고 단톡에 알립니다.
-- **머지는 PR을 올린 사람이 직접 합니다.** (리뷰 승인을 받은 뒤)
+- **PR을 만들면 단톡에 링크를 공유하고 확인을 요청합니다.**
+  GitHub의 **Reviewer 지정은 필수가 아닙니다.** 단톡 공유로 갈음합니다. (지정하고 싶으면 해도 됩니다)
+- **수정 요청이 오면 반영한 뒤 머지합니다.**
+- **머지는 PR을 올린 사람이 직접 합니다.**
 - ⏱ **리뷰 요청 후 30분 안에 응답이 없으면 self-merge해도 됩니다.** 2일짜리 프로젝트에서 리뷰 대기로 전원이 멈추는 게 더 큰 손해입니다. 대신 단톡에 "머지했다"고 남깁니다.
 - Merge 방식은 위 표를 따릅니다 — 기능 PR과 `hotfix`는 **Squash Merge**, 배포 PR(`develop → main`)만 **Merge Commit**.
 - 머지되면 작업 브랜치(`feat/*` `fix/*` `refactor/*` `hotfix/*`)는 **자동으로 삭제**됩니다 (저장소 설정).
@@ -131,7 +149,7 @@ Docs: API 계약서에 팀 조회 엔드포인트 추가 (#21)
 리뷰할 때 확인할 것 딱 3개
 
 1. **API 계약이 깨지지 않았는가** — 응답 필드가 바뀌었는데 `docs/api.md`가 그대로면 반려
-2. **담당 영역 밖 파일을 건드리지 않았는가** — 필요한 변경이었다면 그 담당자를 리뷰어로 추가
+2. **담당 영역 밖 파일을 건드리지 않았는가** — 필요한 변경이었다면 그 담당자에게 단톡으로 확인을 요청
 3. **Secret이 섞이지 않았는가** — `.env`, 실제 키, iCal URL, 개인 일정 데이터
 
 ## 8. 긴급 수정 (시연 중 문제 발생)

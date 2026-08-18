@@ -48,9 +48,15 @@ gh issue view <번호>
 
 `git diff`를 읽고 **무엇이 왜 바뀌었는지** 스스로 요약합니다. 이때 다음을 반드시 확인합니다.
 
-- ⚠️ **Secret이 섞였는지** — `.env`, 실제 API Key, `SUPABASE_SERVICE_ROLE_KEY`, 학교 ID/PW, iCal URL, `.ics` 파일, LMS HTML 덤프
-  → 발견하면 **커밋하지 않고 즉시 사용자에게 알립니다. 실제 값은 출력하지 않습니다.**
-- **API 응답 구조가 바뀌었는지** → 바뀌었는데 `docs/api.md`가 그대로면 문서 수정을 먼저 제안합니다.
+- ⚠️ **Secret이 섞였는지** — 발견하면 **커밋하지 않고 즉시 사용자에게 알립니다. 실제 값은 출력하지 않습니다.**
+  - `.env`, 실제 API Key, `SUPABASE_SERVICE_ROLE_KEY`, DB 비밀번호
+  - 학교 ID/PW, iCal URL, `.ics` 파일
+  - **`*.local.html` 등 LMS 화면 덤프** — `.gitignore`에 있지만 `git add -f`나 다른 확장자로 저장하면 통과합니다
+  - **개인 일정 제목이 들어간 테스트 fixture·파싱 결과 JSON** — 수집·파싱 작업 중 가장 섞이기 쉬운 경로입니다
+  - **에러 메시지·로그에 박힌 LMS 원문 조각이나 일정 제목** — `docs/api.md`가 금지한 것입니다. 위치·건수만 남겨야 합니다
+- **API 계약이 바뀌었는지** → `docs/api.md`가 따라오지 않았으면 문서 수정을 먼저 제안합니다.
+  - 응답 필드·구조·상태코드가 바뀐 경우
+  - **새 엔드포인트를 구현했는데 `docs/api.md`의 해당 항목이 아직 `합의 대기`인 경우** → `Method`·`Path`와 상세를 채우자고 제안합니다
 - **담당 영역 밖(`frontend/` ↔ `backend/`) 파일이 섞였는지** → 의도한 변경인지 확인합니다.
 - 디버그용 `console.log`, 주석 처리된 코드 덩어리, 임시 파일이 남아 있는지.
 
@@ -117,8 +123,9 @@ gh pr create --base <base> --title "<커밋 제목과 동일하게>" --body "...
 
 - 만든 커밋 목록 (`git log --oneline -n <개수>`)
 - **PR URL**
-- 리뷰어를 1명 지정하고 단톡에 알리라고 안내
-- 30분 내 리뷰가 없으면 self-merge 가능하다는 규칙 상기
+- **단톡에 PR 링크를 공유하고 확인을 요청**하라고 안내합니다. **GitHub Reviewer 지정은 필수가 아닙니다** — 먼저 권하지 마세요.
+- 30분 내 응답이 없으면 self-merge 가능하다는 규칙 상기
+- 수정 요청이 오면 반영한 뒤 머지한다는 점 상기
 - **머지 방식을 명시해 알려줍니다** — 기능 PR·`hotfix`는 Squash Merge, 배포 PR(`develop → main`)은 **Merge Commit**
 - 머지되면 원격 작업 브랜치는 자동 삭제됩니다
 - `hotfix`를 `main`에 머지한 뒤에는 **그 수정이 `develop`에도 필요한지 확인**하도록 알려줍니다
