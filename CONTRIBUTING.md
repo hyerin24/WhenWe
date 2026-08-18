@@ -9,7 +9,7 @@ Issue 만들기 → develop에서 브랜치 따기 → 작업 → 커밋 → PR(
 ```
 
 - `main`에는 **직접 push할 수 없습니다** (GitHub Ruleset이 막습니다).
-- `develop`은 GitHub이 막지 않지만, **팀 규칙으로 PR을 사용합니다.**
+- `develop`은 **삭제만 GitHub Ruleset이 막습니다.** push 자체는 막지 않으니, **팀 규칙으로 PR을 사용합니다.**
 - 기능 PR의 대상은 **항상 `develop`** 입니다.
 - Merge 방식은 흐름마다 다릅니다 — 기능·긴급수정은 **Squash Merge**, 배포(`develop → main`)만 **Merge Commit**.
 - 커밋 메시지: `Feat: LMS 일정 불러오기 구현 (#12)`
@@ -125,7 +125,8 @@ Docs: API 계약서에 팀 조회 엔드포인트 추가 (#21)
 - **머지는 PR을 올린 사람이 직접 합니다.** (리뷰 승인을 받은 뒤)
 - ⏱ **리뷰 요청 후 30분 안에 응답이 없으면 self-merge해도 됩니다.** 2일짜리 프로젝트에서 리뷰 대기로 전원이 멈추는 게 더 큰 손해입니다. 대신 단톡에 "머지했다"고 남깁니다.
 - Merge 방식은 위 표를 따릅니다 — 기능 PR과 `hotfix`는 **Squash Merge**, 배포 PR(`develop → main`)만 **Merge Commit**.
-- 머지되면 작업 브랜치는 **자동으로 삭제**됩니다 (저장소 설정). 로컬 브랜치는 각자 정리하세요.
+- 머지되면 작업 브랜치(`feat/*` `fix/*` `refactor/*` `hotfix/*`)는 **자동으로 삭제**됩니다 (저장소 설정).
+  `main`·`develop`은 Ruleset으로 삭제가 차단되어 있어 남습니다. 로컬 브랜치는 각자 정리하세요.
 
 리뷰할 때 확인할 것 딱 3개
 
