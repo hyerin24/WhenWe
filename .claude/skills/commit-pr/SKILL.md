@@ -1,6 +1,6 @@
 ---
 name: commit-pr
-description: WhenWe 저장소에서 작업을 마무리합니다. 변경 내용을 분석해 커밋 규칙에 맞게 커밋하고, 사용자 확인 후 push하고 develop 대상 PR을 생성합니다. 사용자가 "작업 끝났어", "커밋해줘", "PR 올려줘", "/commit-pr" 라고 요청할 때 사용합니다.
+description: WhenWe 저장소에서 작업을 마무리합니다. 변경 내용을 분석해 커밋 규칙에 맞게 커밋하고, 사용자 확인 후 push하고 현재 브랜치에 맞는 base(기능은 develop, 배포·hotfix는 main)로 PR을 생성합니다. 사용자가 "작업 끝났어", "커밋해줘", "PR 올려줘", "배포하자", "/commit-pr" 라고 요청할 때 사용합니다.
 ---
 
 # 작업 마무리 — 커밋과 PR
@@ -27,6 +27,11 @@ git diff --staged
 2. 브랜치 이름은 `/new-branch` 규칙에 맞춘다
 
 `hotfix` 작업이라 정말 `main`에서 시작해야 하는 경우에도, **커밋은 `hotfix/*` 브랜치에서** 합니다.
+
+**예외 — 배포 PR(`develop → main`)**
+사용자가 "배포하자", "main에 반영하자"라고 요청한 경우는 `develop`에 커밋할 일이 없습니다.
+`develop`의 작업 트리가 깨끗한지만 확인하고 **커밋 관련 단계(3~8단계)를 건너뛰어 9단계(PR 생성)로 갑니다.**
+이때 base는 `main`, 머지 방식은 **Merge Commit**입니다.
 
 ## 3단계: 관련 Issue 확인
 
@@ -85,10 +90,17 @@ git push -u origin <현재-브랜치>
 ## 9단계: PR 생성
 
 ```bash
-gh pr create --base develop --title "<커밋 제목과 동일하게>" --body "..."
+gh pr create --base <base> --title "<커밋 제목과 동일하게>" --body "..."
 ```
 
-- **base는 항상 `develop`** 입니다. `hotfix/*`만 `--base main` 입니다.
+**base는 현재 브랜치에 따라 결정합니다. 임의로 고르지 마세요.**
+
+| 현재 브랜치 | `--base` | 머지할 때 방식 |
+|---|---|---|
+| `feat/*` `fix/*` `refactor/*` (그 외 `docs/*` `chore/*` 등 작업 브랜치 동일) | `develop` | Squash Merge |
+| `develop` (배포 PR) | `main` | **Merge Commit** |
+| `hotfix/*` | `main` | Squash Merge |
+
 - 본문은 `.github/PULL_REQUEST_TEMPLATE.md`의 4칸을 채웁니다.
   - `관련 Issue`: `Closes #12`
   - `변경 내용`: 실제 diff 기준으로 작성
@@ -96,7 +108,10 @@ gh pr create --base develop --title "<커밋 제목과 동일하게>" --body "..
   - `스크린샷`: UI 변경이 있으면 사용자에게 첨부를 요청
 - 체크리스트 3개(Secret / `docs/api.md` / 담당 영역)도 실제로 확인한 것만 체크합니다.
 - `gh`를 쓸 수 없으면 push까지만 하고 **PR 생성 URL을 안내**합니다.
-  `https://github.com/hyerin24/WhenWe/compare/develop...<브랜치>?expand=1`
+  base를 위 표에 맞춰 넣어야 합니다 — URL의 `compare/<base>...<브랜치>` 순서입니다.
+  - 기능 PR: `https://github.com/hyerin24/WhenWe/compare/develop...<브랜치>?expand=1`
+  - 배포 PR: `https://github.com/hyerin24/WhenWe/compare/main...develop?expand=1`
+  - hotfix PR: `https://github.com/hyerin24/WhenWe/compare/main...<브랜치>?expand=1`
 
 ## 10단계: 보고
 
@@ -104,7 +119,10 @@ gh pr create --base develop --title "<커밋 제목과 동일하게>" --body "..
 - **PR URL**
 - 리뷰어를 1명 지정하고 단톡에 알리라고 안내
 - 30분 내 리뷰가 없으면 self-merge 가능하다는 규칙 상기
-- 머지 방식은 **Squash Merge**, 머지 후 브랜치 삭제
+- **머지 방식을 명시해 알려줍니다** — 기능 PR·`hotfix`는 Squash Merge, 배포 PR(`develop → main`)은 **Merge Commit**
+- 머지되면 원격 작업 브랜치는 자동 삭제됩니다
+- `hotfix`를 `main`에 머지한 뒤에는 **그 수정이 `develop`에도 필요한지 확인**하도록 알려줍니다
+  (필요하면 `develop`에서 `origin/main`을 merge)
 
 ## 하지 말 것
 

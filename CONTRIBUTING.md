@@ -8,8 +8,10 @@
 Issue 만들기 → develop에서 브랜치 따기 → 작업 → 커밋 → PR(develop으로) → 리뷰 → Squash Merge
 ```
 
-- `main`에는 **직접 push할 수 없습니다** (GitHub이 막습니다). 모든 변경은 PR로 들어갑니다.
+- `main`에는 **직접 push할 수 없습니다** (GitHub Ruleset이 막습니다).
+- `develop`은 GitHub이 막지 않지만, **팀 규칙으로 PR을 사용합니다.**
 - 기능 PR의 대상은 **항상 `develop`** 입니다.
+- Merge 방식은 흐름마다 다릅니다 — 기능·긴급수정은 **Squash Merge**, 배포(`develop → main`)만 **Merge Commit**.
 - 커밋 메시지: `Feat: LMS 일정 불러오기 구현 (#12)`
 - 브랜치 이름: `feat/lms-calendar-import-#12`
 
@@ -102,11 +104,14 @@ Docs: API 계약서에 팀 조회 엔드포인트 추가 (#21)
 
 ## 6. Pull Request
 
-| 작업 | PR 대상 |
-|---|---|
-| 기능 · 버그 · 리팩터링 | **`develop`** |
-| `main` 긴급 수정 (`hotfix/*`) | **`main`** |
-| `develop` → `main` 반영 | `main` (통합이 끝났을 때) |
+| 작업 | 브랜치 | PR 대상 | Merge 방식 |
+|---|---|---|---|
+| 기능 · 버그 · 리팩터링 | `feat/*` `fix/*` `refactor/*` | **`develop`** | **Squash Merge** |
+| 배포 (`develop` 통합 완료) | `develop` | **`main`** | **Merge Commit** |
+| 긴급 수정 | `hotfix/*` | **`main`** | **Squash Merge** |
+
+> **배포 PR만 Merge Commit인 이유**: `develop → main`을 Squash하면 `main`에 `develop`에는 없는 새 커밋이 생겨
+> 두 브랜치의 히스토리가 갈라지고, 다음 배포 PR에서 같은 변경이 중복 diff·충돌로 되돌아옵니다.
 
 - 템플릿 4칸(관련 Issue / 변경 내용 / 확인 방법 / 스크린샷)을 채웁니다.
 - `Closes #12` 를 넣으면 머지될 때 Issue가 자동으로 닫힙니다.
@@ -119,7 +124,8 @@ Docs: API 계약서에 팀 조회 엔드포인트 추가 (#21)
 - 리뷰어로 **팀원 1명을 지정**하고 단톡에 알립니다.
 - **머지는 PR을 올린 사람이 직접 합니다.** (리뷰 승인을 받은 뒤)
 - ⏱ **리뷰 요청 후 30분 안에 응답이 없으면 self-merge해도 됩니다.** 2일짜리 프로젝트에서 리뷰 대기로 전원이 멈추는 게 더 큰 손해입니다. 대신 단톡에 "머지했다"고 남깁니다.
-- **Squash Merge**를 사용합니다. 머지 후 작업 브랜치는 삭제합니다.
+- Merge 방식은 위 표를 따릅니다 — 기능 PR과 `hotfix`는 **Squash Merge**, 배포 PR(`develop → main`)만 **Merge Commit**.
+- 머지되면 작업 브랜치는 **자동으로 삭제**됩니다 (저장소 설정). 로컬 브랜치는 각자 정리하세요.
 
 리뷰할 때 확인할 것 딱 3개
 
@@ -135,10 +141,20 @@ git pull origin main
 git switch -c hotfix/heatmap-crash
 # 수정 후
 git push -u origin hotfix/heatmap-crash
-# → main으로 PR 생성 → 머지
+# → main으로 PR 생성 → Squash Merge
 ```
 
-머지 후 **`develop`에도 같은 수정을 반영**해야 합니다. (`develop`에서 `main`을 merge)
+머지 후 **그 수정이 `develop`에도 필요하다면 `develop`에 반영**합니다.
+
+```bash
+git switch develop
+git pull origin develop
+git merge origin/main        # main의 hotfix 내용을 develop으로 가져온다
+git push origin develop
+```
+
+`develop`에 이미 같은 내용이 들어 있거나 그 코드가 곧 교체될 예정이라면 생략해도 됩니다.
+판단이 안 서면 단톡에 물어보세요 — 반영을 빼먹으면 다음 배포에서 버그가 되살아납니다.
 
 ## 9. Secret 관리
 
