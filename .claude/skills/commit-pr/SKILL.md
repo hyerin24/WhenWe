@@ -123,8 +123,9 @@ gh pr create --base <base> --title "<커밋 제목과 동일하게>" --body "...
 
 - 만든 커밋 목록 (`git log --oneline -n <개수>`)
 - **PR URL**
-- 리뷰어를 1명 지정하고 단톡에 알리라고 안내
-- 30분 내 리뷰가 없으면 self-merge 가능하다는 규칙 상기
+- **단톡에 PR 링크를 공유하고 확인을 요청**하라고 안내합니다. **GitHub Reviewer 지정은 필수가 아닙니다** — 먼저 권하지 마세요.
+- 30분 내 응답이 없으면 self-merge 가능하다는 규칙 상기
+- 수정 요청이 오면 반영한 뒤 머지한다는 점 상기
 - **머지 방식을 명시해 알려줍니다** — 기능 PR·`hotfix`는 Squash Merge, 배포 PR(`develop → main`)은 **Merge Commit**
 - 머지되면 원격 작업 브랜치는 자동 삭제됩니다
 - `hotfix`를 `main`에 머지한 뒤에는 **그 수정이 `develop`에도 필요한지 확인**하도록 알려줍니다

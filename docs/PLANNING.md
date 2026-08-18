@@ -119,7 +119,7 @@
 | 6 | Frontend B — Calendar Heatmap | Heatmap 화면 · 시각화 | `frontend/` | |
 | 7 | 여유도 알고리즘 + 통합 | 개인 부담도 계산 → 팀 부담도·여유도 계산 → Heatmap용 결과 생성 → 전체 통합 | `backend/` | |
 
-> 담당 영역이 다른 폴더를 수정해야 하면 먼저 그 담당자에게 알리고 PR 리뷰어로 지정합니다 ([CONTRIBUTING §7](../CONTRIBUTING.md#7-리뷰--머지)).
+> 담당 영역이 다른 폴더를 수정해야 하면 먼저 그 담당자에게 알리고, PR을 올린 뒤 단톡으로 확인을 요청합니다 ([CONTRIBUTING §7](../CONTRIBUTING.md#7-리뷰--머지)).
 
 ## 10. 2일 일정
 
