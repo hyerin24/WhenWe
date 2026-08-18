@@ -46,7 +46,8 @@ Type: `Feat` `Fix` `Refactor` `Docs` `Chore` `Style` `Test` `Rename` `Remove`
 
 - **배포 PR(`develop → main`)은 Squash하지 않습니다.** Squash하면 두 브랜치 히스토리가 갈라져 다음 배포에서 충돌합니다.
 - `hotfix`가 `main`에 머지된 뒤, 그 수정이 `develop`에도 필요하면 **`develop`에서 `origin/main`을 merge**해 반영하도록 안내하세요.
-- 저장소 설정상 PR이 머지되면 **원격 작업 브랜치는 자동 삭제**됩니다.
+- 저장소 설정상 PR이 머지되면 **작업 브랜치(`feat/*` `fix/*` `refactor/*` `hotfix/*`)는 원격에서 자동 삭제**됩니다.
+  `main`·`develop`은 Ruleset으로 삭제가 차단되어 있어 남습니다.
 - `rebase`는 사용하지 않습니다 (저장소에서도 Rebase merge가 비활성화되어 있습니다).
 
 ### 새 작업을 시작할 때 확인 순서
