@@ -10,7 +10,7 @@ LMS 일정 수집 · 데이터 정제 · 팀 기능 · Heatmap · 부담도 알�
 
 - **7명 / 약 2일**짜리 팀 프로젝트입니다. 과도한 추상화, 불필요한 설정 추가, 큰 리팩터링을 제안하지 마세요.
 - `frontend/` (프론트엔드) · `backend/` (Node API) · `docs/` (공동) 로 나뉩니다.
-- DB는 **Supabase**를 사용합니다. Firebase는 사용하지 않습니다.
+- DB와 인증은 **Supabase**를 사용합니다. 다른 BaaS로 바꾸자는 제안을 하지 마세요.
 - 환경은 **Windows / PowerShell**입니다. 경로에 한글이 섞일 수 있으니 인용 부호를 빠뜨리지 마세요.
 
 ## Git 규칙
@@ -29,13 +29,25 @@ LMS 일정 수집 · 데이터 정제 · 팀 기능 · Heatmap · 부담도 알�
 ```text
 브랜치   <type>/<내용-kebab-case>-#<issue번호>     예: feat/lms-calendar-import-#12
 커밋     Type: 설명 (#이슈번호)                    예: Feat: LMS 일정 불러오기 구현 (#12)
-PR 대상  기능·버그·리팩터링 → develop / hotfix → main
 ```
 
 Type: `Feat` `Fix` `Refactor` `Docs` `Chore` `Style` `Test` `Rename` `Remove`
 
 - **하나의 논리적 변경 = 하나의 커밋.** 서로 다른 성격의 변경은 커밋을 분리해 제안하세요.
 - 커밋 메시지에 `Co-Authored-By` 같은 트레일러를 붙이지 않습니다. 제목 한 줄로 끝냅니다.
+
+### 세 가지 흐름과 Merge 방식
+
+| 흐름 | 브랜치 | PR 대상 | Merge 방식 |
+|---|---|---|---|
+| 일반 기능 · 버그 · 리팩터링 | `feat/*` `fix/*` `refactor/*` | `develop` | **Squash Merge** |
+| 배포 (`develop` 통합 완료) | `develop` | `main` | **Merge Commit** |
+| 긴급 수정 | `hotfix/*` | `main` | **Squash Merge** |
+
+- **배포 PR(`develop → main`)은 Squash하지 않습니다.** Squash하면 두 브랜치 히스토리가 갈라져 다음 배포에서 충돌합니다.
+- `hotfix`가 `main`에 머지된 뒤, 그 수정이 `develop`에도 필요하면 **`develop`에서 `origin/main`을 merge**해 반영하도록 안내하세요.
+- 저장소 설정상 PR이 머지되면 **원격 작업 브랜치는 자동 삭제**됩니다.
+- `rebase`는 사용하지 않습니다 (저장소에서도 Rebase merge가 비활성화되어 있습니다).
 
 ### 새 작업을 시작할 때 확인 순서
 
