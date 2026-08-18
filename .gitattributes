@@ -1,0 +1,12 @@
+# 팀원마다 OS와 core.autocrlf 설정이 달라도 개행 차이로 diff가 뒤집히지 않게 한다.
+* text=auto eol=lf
+
+# 아래 파일들은 텍스트 변환 대상이 아니다.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.woff  binary
+*.woff2 binary
