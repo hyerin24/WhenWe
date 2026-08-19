@@ -1,8 +1,10 @@
 import { Fragment, useMemo, useState } from 'react'
 import type { HeatmapItem } from '../mock/heatmap'
 
+// getDay() 인덱스 순서(일요일 시작)
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
-const PAGE_SIZE = 5
+// 화면 표시 순서(월요일 시작)
+const WEEKDAY_ORDER = ['월', '화', '수', '목', '금', '토', '일']
 
 type ViewMode = 'date' | 'weekday'
 
@@ -31,7 +33,7 @@ type SelectedCell = CellInfo & { col: string; hour: number }
 
 interface CalendarHeatmapProps {
   items: HeatmapItemInput[]
-  dates: string[] // 전체 기간 날짜 배열 (ISO, 오름차순) — 실제 날짜 뷰에서는 5일씩 나눠 페이징한다
+  dates: string[] // 전체 기간 날짜 배열 (ISO, 오름차순) — 실제 날짜 뷰에서는 월~일 한 주씩 나눠 페이징한다
   hours: number[]
 }
 
@@ -44,9 +46,14 @@ export default function CalendarHeatmap({ items, dates, hours }: CalendarHeatmap
   const [pageIndex, setPageIndex] = useState(0)
   const [selected, setSelected] = useState<SelectedCell | null>(null)
 
+  // 월요일에서 끊어 한 주(월~일)씩 페이징한다. 기간이 주 중간에서 시작·끝나면 그 주만 짧아진다.
   const pages = useMemo(() => {
     const chunks: string[][] = []
-    for (let i = 0; i < dates.length; i += PAGE_SIZE) chunks.push(dates.slice(i, i + PAGE_SIZE))
+    dates.forEach((date) => {
+      const isMonday = toWeekdayLabel(date) === '월'
+      if (isMonday || chunks.length === 0) chunks.push([])
+      chunks[chunks.length - 1].push(date)
+    })
     return chunks
   }, [dates])
   const currentPage = pages[pageIndex] ?? []
@@ -57,13 +64,10 @@ export default function CalendarHeatmap({ items, dates, hours }: CalendarHeatmap
     return map
   }, [items])
 
+  // 요일 보기 컬럼은 날짜가 등장하는 순서가 아니라 항상 월~일 순으로 고정한다
   const weekdayColumns = useMemo(() => {
-    const seen: string[] = []
-    dates.forEach((date) => {
-      const label = toWeekdayLabel(date)
-      if (!seen.includes(label)) seen.push(label)
-    })
-    return seen
+    const present = new Set(dates.map(toWeekdayLabel))
+    return WEEKDAY_ORDER.filter((label) => present.has(label))
   }, [dates])
 
   // 요일 보기: 같은 요일에 해당하는 모든 날짜의 값을 평균해 하나의 칸으로 합친다
@@ -136,7 +140,7 @@ export default function CalendarHeatmap({ items, dates, hours }: CalendarHeatmap
               className="px-2.5 py-1 rounded-md border border-gray-300 bg-white text-sm disabled:opacity-40 disabled:cursor-default"
               onClick={() => setPageIndex((i) => Math.max(0, i - 1))}
               disabled={pageIndex === 0}
-              aria-label="이전 5일"
+              aria-label="이전 주"
             >
               &lt;
             </button>
@@ -147,7 +151,7 @@ export default function CalendarHeatmap({ items, dates, hours }: CalendarHeatmap
               className="px-2.5 py-1 rounded-md border border-gray-300 bg-white text-sm disabled:opacity-40 disabled:cursor-default"
               onClick={() => setPageIndex((i) => Math.min(pages.length - 1, i + 1))}
               disabled={pageIndex === pages.length - 1}
-              aria-label="다음 5일"
+              aria-label="다음 주"
             >
               &gt;
             </button>

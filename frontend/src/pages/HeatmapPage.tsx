@@ -1,8 +1,13 @@
 /**
  * Heatmap 화면 (Role 6 / F6 담당 영역).
- * 지금은 라우터 연결 확인용 빈 페이지입니다. Role 6 가 features/heatmap/ 으로 채웁니다.
+ * 지금은 Mock 데이터로 그립니다. F7(부담도·여유도 계산) API가 확정되면 실제 데이터로 교체합니다.
  */
 import { Link, useSearchParams } from 'react-router-dom'
+import CalendarHeatmap from '@/components/CalendarHeatmap'
+import { HOURS, MONTH_DATES } from '@/mock/heatmap'
+import { generateMockHeatmapWithMembers } from '@/mock/heatmapWithMembers'
+
+const mockResponseWithMembers = generateMockHeatmapWithMembers()
 
 export function HeatmapPage() {
   // 팀 목록에서 팀 카드를 누르면 ?teamId= 로 넘어옵니다.
@@ -11,13 +16,13 @@ export function HeatmapPage() {
   const teamId = searchParams.get('teamId')
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-10">
+    <main className="mx-auto w-full max-w-3xl px-4 py-10">
       <Link to="/teams" className="text-sm text-slate-500 underline underline-offset-2">
         ← 내 팀
       </Link>
-      <h1 className="mt-4 text-2xl font-bold">Heatmap</h1>
+      <h1 className="mt-4 text-2xl font-bold">팀 Calendar Heatmap</h1>
       <p className="mt-2 text-sm text-slate-500">
-        F6 담당(Role 6) 화면입니다. 아직 비어 있습니다.
+        Mock 데이터입니다. F7(부담도·여유도 계산) API가 확정되면 실제 데이터로 교체합니다.
         {teamId && (
           <>
             {' '}
@@ -25,6 +30,15 @@ export function HeatmapPage() {
           </>
         )}
       </p>
+
+      <section className="mt-8">
+        <h2 className="text-lg font-medium">팀원별 상세형 — 협의용 데모</h2>
+        <p className="mt-1 mb-3 text-sm text-slate-500">
+          칸을 클릭하면 누가 되고 안 되는지까지 나옵니다. 아직 api.md에 없는 형태라 역할4·역할7과
+          합의되면 이 버전으로 교체합니다.
+        </p>
+        <CalendarHeatmap items={mockResponseWithMembers.items} dates={MONTH_DATES} hours={HOURS} />
+      </section>
     </main>
   )
 }
