@@ -70,6 +70,7 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | | | 브라우저 수집 결과 전달 (F2 → F3·F4) | 역할 2·3·4 | **합의 대기** |
 | | | 팀 단위 일정 조회 (F4 → F6·F7) | 역할 4 | **합의 대기** |
 | | | 부담도·여유도 결과 조회 (F7 → F6) | 역할 6·7 | **합의 대기** |
+| | | 정제된 일정 데이터 전달 (F3 → F4) | 역할 3·4 | **DRAFT** |
 
 **`Method`·`Path`가 비어 있는 것은 아직 정해지지 않았다는 뜻입니다.**
 위 3개는 [FEATURES.md](FEATURES.md)가 등재를 요구하는 계약이고, **경로·필드·에러 code 중 확정된 것이 하나도 없습니다.** 확정된 명세로 취급하지 마세요.
@@ -118,3 +119,40 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | 400 | | |
 | 404 | | |
 ````
+
+
+### (내부) F3 정제 결과 스키마    `DRAFT`
+
+서버(F3)가 F2의 raw 데이터를 받아 정제한 뒤의 최종 형태입니다. / 담당: 역할 3 제안 / 합의: 대기 중 — 역할 4 확인 필요
+
+**정제 규칙**
+- 같은 `sourceEventId`(없으면 dateKst+title 조합)는 중복으로 보고 하나만 남긴다. 시각 있는 쪽이 우선.
+- `kind`가 `unknown`인 항목은 그대로 두되 나중에 사람이 검토할 수 있도록 남긴다 (버리지 않음).
+- F2가 `parseFailures`로 보낸 항목은 저장하지 않는다.
+- 필드 매핑: `dateKst`+`startAt`/`endAt` → `startAt`/`endAt`만 유지, `kind` → `type`, `hasTime` → `allDay`(반대값)
+
+**정제 결과 (item 1개 예시)**
+
+```json
+{
+  "id": "521535",
+  "title": "3주차 과제",
+  "type": "assignment",
+  "startAt": "2025-03-15T05:59:00Z",
+  "endAt": "2025-03-15T14:59:00Z",
+  "allDay": false,
+  "courseName": "자료구조"
+}
+```
+
+**필드 설명**
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `id` | string | F2의 `sourceEventId` 그대로. 없으면 서버가 생성 |
+| `title` | string | 일정 제목 |
+| `type` | assignment\|exam\|class\|other\|unknown | F2의 `kind`를 그대로 받음 |
+| `startAt` | string\|null | ISO 8601 UTC. 시각 없으면 null |
+| `endAt` | string\|null | ISO 8601 UTC. 종료가 없으면 null |
+| `allDay` | boolean | F2의 `hasTime`이 false면 true |
+| `courseName` | string\|null | 과목명. 없으면 null |
