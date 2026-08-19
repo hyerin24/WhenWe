@@ -34,11 +34,19 @@ export interface Session {
 }
 
 export interface Team {
-  teamId: string
+  /** 팀 UUID. 서버 응답 필드명이 `id` 라 그대로 씁니다. (F4 · POST /api/teams) */
+  id: string
   name: string
-  memberCount: number
   inviteCode: string
+  /** 팀을 만든 사용자의 UUID. 방장 표시·삭제 권한 분기에 씁니다. */
+  createdBy: string
   createdAt: string // ISO 8601 UTC
+  /**
+   * 팀에 속한 인원 수. 목록 카드에 표시합니다.
+   * TODO(api.md): POST /api/teams 응답에는 없습니다(생성 직후엔 항상 1).
+   * GET /api/teams 응답에 포함되는지 F4 확인 필요.
+   */
+  memberCount: number
 }
 
 // ── 여유도 (Role 6) ───────────────────────────────────

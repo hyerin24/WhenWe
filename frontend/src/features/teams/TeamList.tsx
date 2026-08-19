@@ -28,11 +28,11 @@ export function TeamList({ teams, isLoading, error }: Props) {
   return (
     <ul className="space-y-2">
       {teams.map((team) => (
-        <li key={team.teamId}>
+        <li key={team.id}>
           <button
             type="button"
             // TODO(F6): 팀 선택 방식은 Role 6 의 Heatmap 라우트 설계에 맞춰 바뀔 수 있습니다.
-            onClick={() => navigate(`/heatmap?teamId=${team.teamId}`)}
+            onClick={() => navigate(`/heatmap?teamId=${team.id}`)}
             aria-label={`${team.name} 팀의 Heatmap 보기`}
             className="w-full cursor-pointer rounded-md border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 active:bg-slate-100"
           >

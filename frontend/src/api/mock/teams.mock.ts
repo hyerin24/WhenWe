@@ -14,14 +14,14 @@ import { delay, getMockUserId } from './auth.mock'
 
 /** 초대 코드로 참가할 수 있는, 내가 아직 속하지 않은 팀들 */
 const JOINABLE: Team[] = [
-  { teamId: 't_101', name: '알고리즘 스터디', memberCount: 6, inviteCode: 'ZX99YQ', createdAt: '2026-08-17T02:30:00Z' },
-  { teamId: 't_102', name: '졸업작품 발표조', memberCount: 3, inviteCode: 'KR42MN', createdAt: '2026-08-18T11:00:00Z' },
+  { id: 't_101', name: '알고리즘 스터디', inviteCode: 'ZX99YQ', createdBy: 'u_other', createdAt: '2026-08-17T02:30:00Z', memberCount: 6 },
+  { id: 't_102', name: '졸업작품 발표조', inviteCode: 'KR42MN', createdBy: 'u_other', createdAt: '2026-08-18T11:00:00Z', memberCount: 3 },
 ]
 
 const SEED: Record<string, Team[]> = {
   u_demo: [
-    { teamId: 't_001', name: '캡스톤 3조', memberCount: 4, inviteCode: 'AB12CD', createdAt: '2026-08-19T09:00:00Z' },
-    { teamId: 't_002', name: '운영체제 팀플', memberCount: 5, inviteCode: 'QW34ER', createdAt: '2026-08-18T05:20:00Z' },
+    { id: 't_001', name: '캡스톤 3조', inviteCode: 'AB12CD', createdBy: 'u_demo', createdAt: '2026-08-19T09:00:00Z', memberCount: 4 },
+    { id: 't_002', name: '운영체제 팀플', inviteCode: 'QW34ER', createdBy: 'u_other', createdAt: '2026-08-18T05:20:00Z', memberCount: 5 },
   ],
   u_newbie: [],
 }
@@ -60,11 +60,13 @@ export const mockTeamsApi: TeamsApi = {
     }
 
     const team: Team = {
-      teamId: `t_${++nextId}`,
+      id: `t_${++nextId}`,
       name: trimmed,
-      memberCount: 1,
       inviteCode: randomInviteCode(),
+      // myTeams() 가 바로 위에서 로그인 여부를 검사했으므로 여기서는 반드시 있습니다.
+      createdBy: getMockUserId()!,
       createdAt: new Date().toISOString(),
+      memberCount: 1,
     }
     teams.push(team)
     return team
