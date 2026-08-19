@@ -10,13 +10,21 @@
  *
  * 이 파일을 컴포넌트가 직접 import 하지 않습니다. src/api/index.ts 만 씁니다.
  */
-import type { Team } from '@/types/api'
+import type { JoinResult, Team } from '@/types/api'
 import { apiClient } from './client'
+
+/**
+ * 초대 코드 길이. 입력칸 제한·mock 생성기가 같은 값을 씁니다.
+ * F4 공유 예시(`8EA3HDRN`) 기준입니다.
+ * TODO(F4): 문자셋과 대소문자 구분 여부는 아직 못 받았습니다.
+ * 지금은 입력값을 대문자로 바꿔 보냅니다 — 서버가 소문자를 쓰면 매칭이 깨집니다.
+ */
+export const INVITE_CODE_LENGTH = 8
 
 export interface TeamsApi {
   list(): Promise<Team[]>
   create(name: string): Promise<Team>
-  joinByCode(inviteCode: string): Promise<Team>
+  joinByCode(inviteCode: string): Promise<JoinResult>
 }
 
 export const teamsApi: TeamsApi = {
@@ -27,6 +35,7 @@ export const teamsApi: TeamsApi = {
   // 실패: 400 INVALID_NAME · 401 UNAUTHORIZED
   create: (name) => apiClient.post<Team>('/api/teams', { name }),
 
-  // TODO(api.md): 경로 미확정 · 409(이미 참여한 팀) code 미확정
-  joinByCode: (inviteCode) => apiClient.post<Team>('/api/teams/join', { inviteCode }),
+  // 확정 (F4 공유). 201 · 응답은 팀 전체가 아니라 참가 사실({ id, name, joinedAt })입니다.
+  // TODO(api.md): 409(이미 참여한 팀) code 미확정
+  joinByCode: (inviteCode) => apiClient.post<JoinResult>('/api/teams/join', { inviteCode }),
 }

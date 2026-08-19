@@ -49,5 +49,19 @@ export interface Team {
   memberCount: number
 }
 
+/**
+ * 초대 코드로 참가했을 때의 응답. (F4 · POST /api/teams/join)
+ *
+ * Team 과 모양이 다릅니다 — 서버가 팀 전체 정보 대신 참가 사실만 돌려줍니다.
+ * 그래서 참가 직후 화면에 팀 카드를 그릴 수 없고, 목록을 다시 받아야 합니다.
+ * TODO(api.md): 참가 응답도 Team 으로 통일할지 F4 와 논의 중입니다.
+ *   통일되면 이 타입을 지우고 TeamsApi.joinByCode 의 반환 타입만 되돌리면 됩니다.
+ */
+export interface JoinResult {
+  id: string
+  name: string
+  joinedAt: string // ISO 8601 UTC
+}
+
 // ── 여유도 (Role 6) ───────────────────────────────────
 // (Role 6 담당자가 여기에 추가합니다)

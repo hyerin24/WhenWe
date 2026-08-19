@@ -25,6 +25,7 @@ export const teams = USE_MOCK ? mockTeamsApi : realTeamsApi
 
 export { ApiError, setAccessToken } from './client'
 export { MIN_PASSWORD_LENGTH, LOGIN_ID_RULE, validateLoginId } from './auth'
+export { INVITE_CODE_LENGTH } from './teams'
 
 /**
  * mock 모드에서만 화면에 안내할 테스트 계정·초대 코드.

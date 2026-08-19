@@ -4,7 +4,7 @@ import type { FormEvent } from 'react'
 import { Button } from '@/components/Button'
 import { ErrorBox } from '@/components/ErrorBox'
 import { Field } from '@/components/Field'
-import { useJoinTeam } from '@/hooks/useTeams'
+import { useJoinTeam, INVITE_CODE_LENGTH } from '@/hooks/useTeams'
 import { useMockHints } from '@/hooks/useMockHints'
 
 export function JoinByCodeForm({ onJoined }: { onJoined: () => void }) {
@@ -32,13 +32,13 @@ export function JoinByCodeForm({ onJoined }: { onJoined: () => void }) {
         label="초대 코드"
         id="invite-code"
         required
-        maxLength={6}
+        maxLength={INVITE_CODE_LENGTH}
         value={code}
         onChange={(e) => {
           setCode(e.target.value.toUpperCase())
           setJoinedName(null)
         }}
-        placeholder="AB12CD"
+        placeholder="AB23CD4F"
         className="font-mono tracking-widest uppercase"
       />
       <ErrorBox error={error} />

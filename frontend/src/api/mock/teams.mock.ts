@@ -8,20 +8,21 @@
  *   newbie@whenwe.dev → 팀 0개 (빈 상태 UI 확인용)
  */
 import type { TeamsApi } from '../teams'
+import { INVITE_CODE_LENGTH } from '../teams'
 import { ApiError } from '../client'
-import type { Team } from '@/types/api'
+import type { JoinResult, Team } from '@/types/api'
 import { delay, getMockUserId } from './auth.mock'
 
 /** 초대 코드로 참가할 수 있는, 내가 아직 속하지 않은 팀들 */
 const JOINABLE: Team[] = [
-  { id: 't_101', name: '알고리즘 스터디', inviteCode: 'ZX99YQ', createdBy: 'u_other', createdAt: '2026-08-17T02:30:00Z', memberCount: 6 },
-  { id: 't_102', name: '졸업작품 발표조', inviteCode: 'KR42MN', createdBy: 'u_other', createdAt: '2026-08-18T11:00:00Z', memberCount: 3 },
+  { id: 't_101', name: '알고리즘 스터디', inviteCode: 'ZX99YQ7M', createdBy: 'u_other', createdAt: '2026-08-17T02:30:00Z', memberCount: 6 },
+  { id: 't_102', name: '졸업작품 발표조', inviteCode: 'KR42MN5T', createdBy: 'u_other', createdAt: '2026-08-18T11:00:00Z', memberCount: 3 },
 ]
 
 const SEED: Record<string, Team[]> = {
   u_demo: [
-    { id: 't_001', name: '캡스톤 3조', inviteCode: 'AB12CD', createdBy: 'u_demo', createdAt: '2026-08-19T09:00:00Z', memberCount: 4 },
-    { id: 't_002', name: '운영체제 팀플', inviteCode: 'QW34ER', createdBy: 'u_other', createdAt: '2026-08-18T05:20:00Z', memberCount: 5 },
+    { id: 't_001', name: '캡스톤 3조', inviteCode: 'AB23CD4F', createdBy: 'u_demo', createdAt: '2026-08-19T09:00:00Z', memberCount: 4 },
+    { id: 't_002', name: '운영체제 팀플', inviteCode: 'QW34ER6H', createdBy: 'u_other', createdAt: '2026-08-18T05:20:00Z', memberCount: 5 },
   ],
   u_newbie: [],
 }
@@ -86,9 +87,12 @@ export const mockTeamsApi: TeamsApi = {
       throw new ApiError(404, { code: 'TEAM_NOT_FOUND', message: '초대 코드에 해당하는 팀이 없습니다.' })
     }
 
-    const joined: Team = { ...found, memberCount: found.memberCount + 1 }
-    teams.push(joined)
-    return joined
+    // mock 이 서버 역할을 대신하는 자리입니다. 내부 저장소에는 팀 전체를 넣고,
+    // 응답은 실제 서버와 같은 모양(참가 사실만)으로 돌려줍니다.
+    teams.push({ ...found, memberCount: found.memberCount + 1 })
+
+    const result: JoinResult = { id: found.id, name: found.name, joinedAt: new Date().toISOString() }
+    return result
   },
 }
 
@@ -100,11 +104,11 @@ export const mockTeamsApi: TeamsApi = {
  * 리터럴로 두면 통째로 tree-shaking 됩니다. 위 JOINABLE 과 손으로 맞춥니다.
  */
 export const MOCK_JOINABLE_CODES = [
-  { code: 'ZX99YQ', name: '알고리즘 스터디' },
-  { code: 'KR42MN', name: '졸업작품 발표조' },
+  { code: 'ZX99YQ7M', name: '알고리즘 스터디' },
+  { code: 'KR42MN5T', name: '졸업작품 발표조' },
 ]
 
 function randomInviteCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  return Array.from({ length: INVITE_CODE_LENGTH }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }

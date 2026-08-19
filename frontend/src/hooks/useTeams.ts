@@ -6,8 +6,11 @@
  * 호출부(features/teams/*)는 한 줄도 바꾸지 않습니다.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { teams } from '@/api'
-import type { Team } from '@/types/api'
+import { teams, INVITE_CODE_LENGTH } from '@/api'
+import type { JoinResult, Team } from '@/types/api'
+
+/** 참가 폼이 쓰는 입력 제한. 원본은 api/teams.ts 한 곳입니다. */
+export { INVITE_CODE_LENGTH }
 
 interface QueryResult<T> {
   data: T | undefined
@@ -49,14 +52,15 @@ export function useTeams(): QueryResult<Team[]> {
   return { data, isLoading, error, refetch }
 }
 
-interface MutationResult<TInput> {
-  mutateAsync: (input: TInput) => Promise<Team>
+/** TData 는 요청이 성공했을 때 서버가 주는 값입니다. 생성은 Team, 참가는 JoinResult 로 서로 다릅니다. */
+interface MutationResult<TInput, TData> {
+  mutateAsync: (input: TInput) => Promise<TData>
   isPending: boolean
   error: Error | null
   reset: () => void
 }
 
-function useTeamMutation(fn: (input: string) => Promise<Team>): MutationResult<string> {
+function useTeamMutation<TData>(fn: (input: string) => Promise<TData>): MutationResult<string, TData> {
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
@@ -82,10 +86,10 @@ function useTeamMutation(fn: (input: string) => Promise<Team>): MutationResult<s
   return { mutateAsync, isPending, error, reset }
 }
 
-export function useCreateTeam(): MutationResult<string> {
+export function useCreateTeam(): MutationResult<string, Team> {
   return useTeamMutation(useCallback((name: string) => teams.create(name), []))
 }
 
-export function useJoinTeam(): MutationResult<string> {
+export function useJoinTeam(): MutationResult<string, JoinResult> {
   return useTeamMutation(useCallback((inviteCode: string) => teams.joinByCode(inviteCode), []))
 }
