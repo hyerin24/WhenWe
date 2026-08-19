@@ -141,7 +141,8 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
   "startAt": "2025-03-15T05:59:00Z",
   "endAt": "2025-03-15T14:59:00Z",
   "allDay": false,
-  "courseName": "자료구조"
+  "courseName": "자료구조",
+  "source": "lms"
 }
 ```
 
@@ -156,3 +157,4 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | `endAt` | string\|null | ISO 8601 UTC. 종료가 없으면 null |
 | `allDay` | boolean | F2의 `hasTime`이 false면 true |
 | `courseName` | string\|null | 과목명. 없으면 null |
+| `source` | string | 데이터 출처. 현재 MVP에서는 항상 "lms" 고정값 |
