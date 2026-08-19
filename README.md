@@ -9,13 +9,22 @@ LMS 일정을 자동으로 수집해, 팀 전체의 가능 시간을 Heatmap으�
 
 | 기능 | 설명 |
 |---|---|
-| LMS 일정 수집 | 과거 일정은 로그인된 LMS Calendar HTML 파싱, 현재·미래 일정은 iCal 구독 URL 동기화 |
+| LMS 일정 수집 | 사용자 본인의 브라우저에서 로그인된 LMS Calendar HTML을 가져와 파싱 |
 | 데이터 정제 | 수집한 일정을 공통 스키마로 정규화 |
 | 팀 기능 | 팀 생성 · 참여 · 팀원별 일정 취합 |
 | Heatmap | 팀 전체의 가능 시간대 시각화 |
 | 부담도 알고리즘 | 과제·시험 밀집도를 반영한 개인별 부담도 산출 |
 
-> **학교 ID/PW는 서버에 저장하지 않고, 대신 로그인하지도 않습니다.** 자세한 원칙은 [CONTRIBUTING.md](CONTRIBUTING.md#secret-관리)를 참고하세요.
+## 수집 경로
+
+```text
+브라우저  LMS Calendar fetch → 파싱 → 일정 JSON  ──API──▸  서버  정제 → 저장 → 조회
+```
+
+**fetch와 파싱은 사용자 브라우저에서** 실행합니다. 이미 로그인된 본인의 LMS 세션을 그대로 쓰고,
+**서버가 대신 로그인하거나 학교 ID/PW를 저장하지 않습니다.** 정제부터는 서버가 처리합니다.
+
+> 자세한 원칙은 [CONTRIBUTING.md](CONTRIBUTING.md#9-secret-관리), 확정된 구조는 [docs/PLANNING.md](docs/PLANNING.md)를 참고하세요.
 
 ## 폴더 구조
 
@@ -24,7 +33,10 @@ WhenWe/
 ├── frontend/        # 프론트엔드 (담당자 영역)
 ├── backend/         # 백엔드 API (담당자 영역)
 ├── docs/
-│   └── api.md       # FE/BE API 계약서 ★ 필드 변경 시 여기부터 고친다
+│   ├── PLANNING.md    # 기획 · 7명 역할 · 2일 일정 · 미확정 사항
+│   ├── FEATURES.md    # 기능 F1~F7 · 완료 조건 ★ GitHub Issue의 원본
+│   ├── api.md         # FE/BE API 계약서 ★ 필드 변경 시 여기부터 고친다
+│   └── ONBOARDING.md  # 처음 오신 분께 — clone부터 merge까지
 ├── .github/         # Issue · PR 템플릿
 ├── .claude/skills/  # Claude Code 협업 스킬 (/new-branch, /commit-pr)
 └── CONTRIBUTING.md  # 협업 규칙 (브랜치 · 커밋 · PR · Secret)
@@ -41,7 +53,20 @@ cp frontend/.env.example frontend/.env
 cp backend/.env.example  backend/.env
 ```
 
-실행 방법은 각 폴더의 README를 참고하세요 — [frontend/README.md](frontend/README.md) · [backend/README.md](backend/README.md)
+> ⚠️ **`npm install`은 아직 동작하지 않습니다.** `package.json`이 아직 커밋되지 않았습니다.
+> 프로젝트 초기 세팅이 `develop`에 올라온 뒤부터 [frontend/README.md](frontend/README.md) · [backend/README.md](backend/README.md)의 실행 방법이 동작합니다.
+
+## 문서
+
+**Git이 처음이라면 [docs/ONBOARDING.md](docs/ONBOARDING.md) 부터 보세요.** clone부터 merge까지 명령을 그대로 복사해 쓸 수 있습니다.
+
+| 찾는 것 | 문서 |
+|---|---|
+| 처음 오신 분께 — clone → 작업 → PR → merge | [docs/ONBOARDING.md](docs/ONBOARDING.md) |
+| 무엇을 만드는가 · 7명 역할 · 미확정 사항 | [docs/PLANNING.md](docs/PLANNING.md) |
+| 기능 `F1`~`F7` · 완료 조건 — **Issue의 원본** | [docs/FEATURES.md](docs/FEATURES.md) |
+| API 요청·응답 계약 | [docs/api.md](docs/api.md) |
+| 브랜치 · 커밋 · PR · Secret 규칙 | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## 협업 규칙
 

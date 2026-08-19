@@ -6,7 +6,18 @@ Claude Code가 이 저장소에서 작업할 때 지켜야 할 규칙입니다.
 ## 프로젝트
 
 **WhenWe** — 팀원들의 학교 일정을 모아 다 같이 가능한 시간을 찾아주는 서비스.
-LMS 일정 수집 · 데이터 정제 · 팀 기능 · Heatmap · 부담도 알고리즘으로 구성됩니다.
+LMS 일정 수집 · 데이터 정제 · 팀 기능 · Heatmap · 부담도/여유도 알고리즘으로 구성됩니다.
+
+### 수집 경로 (확정 — 반드시 지킵니다)
+
+```text
+브라우저  LMS Calendar fetch → 파싱 → 일정 JSON  ──API──▸  서버  정제 → 저장 → 조회
+```
+
+- **fetch와 파싱은 사용자 브라우저에서** 실행합니다. 이미 로그인된 본인의 LMS 세션을 씁니다.
+- **서버가 대신 fetch하는 코드를 작성하지 않습니다.** 그건 대리 로그인이 되어 아래 Secret 결정과 충돌합니다.
+- **정제부터 서버**(`backend/`)입니다. 서버는 브라우저가 보낸 일정 JSON만 받습니다.
+- 자세한 내용은 [docs/PLANNING.md](docs/PLANNING.md) §2 · §11.
 
 - **7명 / 약 2일**짜리 팀 프로젝트입니다. 과도한 추상화, 불필요한 설정 추가, 큰 리팩터링을 제안하지 마세요.
 - `frontend/` (프론트엔드) · `backend/` (Node API) · `docs/` (공동) 로 나뉩니다.
@@ -46,7 +57,8 @@ Type: `Feat` `Fix` `Refactor` `Docs` `Chore` `Style` `Test` `Rename` `Remove`
 
 - **배포 PR(`develop → main`)은 Squash하지 않습니다.** Squash하면 두 브랜치 히스토리가 갈라져 다음 배포에서 충돌합니다.
 - `hotfix`가 `main`에 머지된 뒤, 그 수정이 `develop`에도 필요하면 **`develop`에서 `origin/main`을 merge**해 반영하도록 안내하세요.
-- 저장소 설정상 PR이 머지되면 **원격 작업 브랜치는 자동 삭제**됩니다.
+- 저장소 설정상 PR이 머지되면 **작업 브랜치(`feat/*` `fix/*` `refactor/*` `hotfix/*`)는 원격에서 자동 삭제**됩니다.
+  `main`·`develop`은 Ruleset으로 삭제가 차단되어 있어 남습니다.
 - `rebase`는 사용하지 않습니다 (저장소에서도 Rebase merge가 비활성화되어 있습니다).
 
 ### 새 작업을 시작할 때 확인 순서
@@ -54,13 +66,27 @@ Type: `Feat` `Fix` `Refactor` `Docs` `Chore` `Style` `Test` `Rename` `Remove`
 `/new-branch` 스킬과 동일한 순서를 따릅니다.
 관련 Issue → 현재 브랜치 → `git status` → 미커밋 변경 → `git fetch` → base 브랜치(`develop`) → 이름 규칙 → 브랜치 생성
 
+## 기준 문서
+
+| 찾는 것 | 문서 |
+|---|---|
+| 기획 · 7명 역할 · 미확정 사항 | [docs/PLANNING.md](docs/PLANNING.md) |
+| 기능 구현 범위 · 완료 조건 — **GitHub Issue의 원본** | [docs/FEATURES.md](docs/FEATURES.md) |
+| API 요청·응답 계약 | [docs/api.md](docs/api.md) |
+| 팀원용 협업 규칙 | [CONTRIBUTING.md](CONTRIBUTING.md) |
+
+- 기능 작업을 시작할 때는 **`docs/FEATURES.md`의 해당 기능 섹션과 완료 조건을 먼저 읽으세요.**
+- **미확정 사항을 임의로 확정하지 않습니다.** [PLANNING §13](docs/PLANNING.md)과 FEATURES의 "완료 조건에 넣지 않은 것"이 기준입니다.
+
 ## API 계약
 
 **[docs/api.md](docs/api.md)가 Frontend와 Backend 사이의 계약서입니다.**
 
 - **API 응답의 필드명·구조·상태코드를 임의로 변경하지 않습니다.** 프론트엔드의 Mock이 조용히 깨집니다.
 - 변경이 필요하면 **`docs/api.md`를 먼저 수정하고, PR에서 양쪽 담당자가 확인하도록** 안내하세요.
-- 필드 네이밍은 **camelCase**, 날짜·시간은 **ISO 8601**, 목록 응답은 `{ "items": [...] }` 입니다.
+- 필드 네이밍은 **camelCase**, 날짜·시간은 **ISO 8601**(UTC)입니다.
+- **목록 응답과 목록 요청 바디 모두** `{ "items": [...] }` 로 감쌉니다. 배열을 그대로 주고받지 않습니다.
+- **에러 `message`에 LMS 원문 HTML 조각이나 개인 일정 제목을 넣지 않습니다.** 위치·건수만 알려줍니다.
 - `docs/api.md`에서 `DRAFT`로 표시된 항목은 **아직 합의되지 않은 초안**입니다. 확정된 명세처럼 취급하지 마세요.
 
 ## 담당 영역
@@ -83,7 +109,8 @@ Type: `Feat` `Fix` `Refactor` `Docs` `Chore` `Style` `Test` `Rename` `Remove`
 
 - **학교 ID/PW를 입력받아 저장하거나, 사용자를 대신해 LMS에 로그인하는 코드를 작성하지 않습니다.**
   그런 기능을 요청받으면 구현 전에 이 결정과 충돌한다는 점을 알리세요.
-- **iCal 구독 URL은 URL 자체가 인증 토큰입니다.** 공용 `.env`가 아니라 사용자별 DB 레코드에 저장하고,
+- **iCal 구독 URL 방식은 현재 MVP가 아닙니다** ([PLANNING §13](docs/PLANNING.md) — 대안으로 검토만 된 상태).
+  **먼저 제안하지 마세요.** 채택하는 경우에는 URL 자체가 인증 토큰이므로 공용 `.env`가 아니라 사용자별 DB 레코드에 저장하고,
   로그·에러 메시지·API 응답에 원문을 남기지 않습니다.
 - **`SUPABASE_SERVICE_ROLE_KEY`를 프론트엔드 환경변수(`VITE_` / `NEXT_PUBLIC_`)로 옮기지 않습니다.** 번들에 공개됩니다.
 - 환경변수가 새로 필요하면 `.env.example`에 **키만** 추가하고 실제 값은 넣지 않습니다.
