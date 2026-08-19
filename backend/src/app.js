@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import teamsRouter from './routes/teams.js';
 import schedulesRouter from './routes/schedules.js';
+import lmsRouter from './routes/lms.js';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/teams', teamsRouter);
 app.use('/api/schedules', schedulesRouter);
+app.use('/api/lms', lmsRouter);
 
 // 404 — 위에서 처리되지 않은 모든 요청
 app.use((req, res) => {

@@ -72,7 +72,7 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | GET | `/api/teams` | 내가 속한 팀 목록 (F4 → F5) | 역할 4 | `합의완료` |
 | GET | `/api/teams/:teamId` | 팀 기본 정보 조회 (F4 → F5) | 역할 4 | `합의완료` |
 | POST | `/api/schedules/import` | 정제 완료 일정 저장/갱신 (F3 → F4) | 역할 3·4 | `DRAFT` |
-| | | 브라우저 수집 결과 전달 (F2 → F3·F4) | 역할 2·3·4 | **합의 대기** |
+| POST | `/api/lms/schedules` | 브라우저 수집 결과 전달 (F2 → F3·F4) | 역할 2·3·4 | `DRAFT` |
 | GET | `/api/teams/:teamId/schedules` | 팀 단위 일정 조회 (F4 → F6·F7) | 역할 4 | `합의완료` |
 | | | 부담도·여유도 결과 조회 (F7 → F6) | 역할 6·7 | **합의 대기** |
 
@@ -359,3 +359,64 @@ F3가 정제 완료한 일정 배열을 로그인한 사용자 본인의 일정�
 | 400 | `INVALID_SCHEDULES` | `items`가 배열이 아니거나, 항목 하나라도 형식에 맞지 않음 (개인 일정 제목이 섞여 있을 수 있어 어떤 항목이 틀렸는지는 알리지 않음) |
 | 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
 | 500 | `INTERNAL_ERROR` | 서버 오류 |
+
+### POST /api/lms/schedules   `DRAFT`
+
+브라우저(F2)가 파싱한 LMS 일정 원문(raw) JSON을 받아, 서버에서 F3 정제 → F4 저장까지 한 번에 처리합니다. / 담당: 역할 2·3·4 / 합의: **F3 확인 완료 · F2 확인 대기**
+
+> ⚠️ **F2가 아직 이 계약을 확인하지 않았습니다.** Request 바디(raw payload)의 필드 형태는 F2가 실제로 보낼 값과 다를 수 있습니다. F2 확인 전까지 확정된 명세로 취급하지 마세요.
+
+**인증** 필요 — `Authorization: Bearer <Supabase access token>`
+서버는 토큰에서 얻은 `user.id`에 일정을 붙입니다. 브라우저는 `userId`를 보내지 않습니다.
+
+**처리 흐름**
+
+```text
+Request (F2 raw payload)
+  → refineSchedules()   F3 — 정제 · sourceEventId 없으면 fallback id 생성 · 중복 제거(시각 있는 쪽 우선)
+  → importSchedules()   F4 — 인증된 사용자 본인 schedules 에 UPSERT
+  → Response 200 { importedCount }
+```
+
+**Request** — F2 raw payload. **형태는 F2 확인 전 잠정입니다.**
+
+```json
+{
+  "items": [
+    {
+      "sourceEventId": "string|null · LMS 이벤트 번호. 없으면 서버가 대체 id 생성",
+      "title":         "string · 필수",
+      "dateKst":       "string · 필수 · YYYY-MM-DD",
+      "startAt":       "string|null · ISO 8601 UTC · 시각을 모르면 null",
+      "endAt":         "string|null · ISO 8601 UTC",
+      "hasTime":       "boolean · false면 시각 미상 (자정 아님 — 임의로 00:00 채우지 않음)",
+      "kind":          "assignment | exam | class | other | unknown",
+      "courseName":    "string|null"
+    }
+  ]
+}
+```
+
+> `module`·`scope`·`sourceUrl`은 서버가 읽지 않습니다. LMS 세션·쿠키·ID/PW·원본 HTML은 어떤 필드로도 받지 않습니다.
+
+**Response 200**
+```json
+{
+  "importedCount": 12
+}
+```
+
+> **`importedCount`의 의미**: 정제(중복 제거 포함) 후 UPSERT 대상으로 처리된 **고유 일정 수**입니다. 신규 INSERT와 기존 일정 UPDATE를 **모두 포함**합니다 — "몇 건 새로 생겼는지"가 아니라 "몇 건이 반영됐는지"입니다.
+>
+> PR #17이 제안했던 `201 { savedCount, skippedCount }`는 **채택하지 않았습니다.** `skippedCount`가 무엇을 셀지(파싱 실패? 중복 제거? 검증 실패?) 합의되지 않아, 지금은 기존 `POST /api/schedules/import`와 동일한 `200 { importedCount }`로 통일합니다.
+
+**에러**
+
+| Status | code | 상황 |
+|---|---|---|
+| 400 | `INVALID_PAYLOAD` | 요청 바디가 object가 아니거나 `items`가 배열이 아님 |
+| 400 | `INVALID_SCHEDULES` | 정제된 항목이 저장 단계 검증(타입·형식)을 통과하지 못함 — `importSchedules()`의 에러를 그대로 전달 |
+| 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
+| 500 | `INTERNAL_ERROR` | 서버 오류 |
+
+**구현 상태**: 역할 4가 `refineSchedules()`(F3, PR #21) → `importSchedules()`(F4) 연결과 통합 테스트를 완료했습니다. **F2의 raw payload 형태 확인만 남아 있습니다.**
