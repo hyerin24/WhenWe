@@ -8,6 +8,12 @@ const router = Router();
 const NAME_MAX_LENGTH = 50;
 const INVITE_CODE_MAX_ATTEMPTS = 5;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// 일정 import 검증(backend/src/routes/schedules.js)과 동일한 형식 — UTC Z 고정.
+const ISO_UTC_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+
+function isValidIsoUtc(value) {
+  return typeof value === 'string' && ISO_UTC_RE.test(value) && !Number.isNaN(Date.parse(value));
+}
 
 // POST /api/teams — 팀 생성 (docs/api.md 참고)
 //
@@ -210,9 +216,32 @@ router.get('/:teamId', requireAuth, async (req, res) => {
 // 이 코드가 먼저 검사합니다 — RLS 가 대신 해주지 않기 때문입니다.
 router.get('/:teamId/schedules', requireAuth, async (req, res) => {
   const { teamId } = req.params;
+  const { from, to } = req.query;
 
   if (!UUID_RE.test(teamId)) {
     return res.status(400).json({ code: 'INVALID_TEAM_ID', message: '유효하지 않은 팀 id 형식입니다.' });
+  }
+
+  // from/to 는 하나의 기간 계약([from, to))이라 함께 오거나 함께 생략되어야 합니다.
+  // 한쪽만 오면 F6/F7 이 의도한 기간을 알 수 없어 400 으로 거부합니다.
+  const hasFrom = from !== undefined;
+  const hasTo = to !== undefined;
+
+  if (hasFrom !== hasTo) {
+    return res.status(400).json({ code: 'INVALID_DATE_RANGE', message: '조회 기간이 올바르지 않습니다.' });
+  }
+
+  let range = null;
+  if (hasFrom && hasTo) {
+    if (!isValidIsoUtc(from) || !isValidIsoUtc(to)) {
+      return res.status(400).json({ code: 'INVALID_DATE_RANGE', message: '조회 기간이 올바르지 않습니다.' });
+    }
+    // 문자열 비교 대신 실제 시각으로 비교합니다 — 초 이하 자릿수가 다르면
+    // 문자열 길이가 달라져 사전식 비교가 틀릴 수 있습니다.
+    if (!(Date.parse(from) < Date.parse(to))) {
+      return res.status(400).json({ code: 'INVALID_DATE_RANGE', message: '조회 기간이 올바르지 않습니다.' });
+    }
+    range = { from, to };
   }
 
   const admin = getAdminClient();
@@ -251,10 +280,28 @@ router.get('/:teamId/schedules', requireAuth, async (req, res) => {
   // ③ 그 팀원들의 schedules.
   // title · courseName 은 여기서 아예 select 하지 않습니다 — 본인 것이든 남의 것이든
   // Heatmap/F7 계산에 필요 없는 개인 정보는 응답 스키마에서 원천 제외합니다.
-  const { data: schedules, error: schedulesError } = await admin
+  let query = admin
     .from('schedules')
     .select('id, user_id, type, starts_at, ends_at, all_day, source')
     .in('user_id', userIds);
+
+  if (range) {
+    const { from: rangeFrom, to: rangeTo } = range;
+    // [from, to) 구간과 [starts_at, ends_at] 구간의 겹침 — F6/F7 합의 규칙 그대로:
+    //   ① 둘 다 있음   : starts_at < to  AND  ends_at >= from
+    //   ② start만 NULL : ends_at 을 단일 시점으로 간주 — from <= ends_at < to
+    //   ③ end만 NULL   : starts_at 을 단일 시점으로 간주 — from <= starts_at < to
+    //   ④ 둘 다 NULL   : 제외 (아래 세 그룹 어디에도 해당하지 않아 자동으로 빠짐)
+    query = query.or(
+      [
+        `and(starts_at.not.is.null,ends_at.not.is.null,starts_at.lt.${rangeTo},ends_at.gte.${rangeFrom})`,
+        `and(starts_at.is.null,ends_at.not.is.null,ends_at.gte.${rangeFrom},ends_at.lt.${rangeTo})`,
+        `and(starts_at.not.is.null,ends_at.is.null,starts_at.gte.${rangeFrom},starts_at.lt.${rangeTo})`,
+      ].join(',')
+    );
+  }
+
+  const { data: schedules, error: schedulesError } = await query;
 
   if (schedulesError) {
     console.error('schedules lookup failed', schedulesError);

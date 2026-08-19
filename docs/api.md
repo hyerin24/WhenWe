@@ -72,7 +72,7 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | GET | `/api/teams/:teamId` | 팀 기본 정보 조회 (F4 → F5) | 역할 4 | `DRAFT` |
 | POST | `/api/schedules/import` | 정제 완료 일정 저장/갱신 (F3 → F4) | 역할 3·4 | `DRAFT` |
 | | | 브라우저 수집 결과 전달 (F2 → F3·F4) | 역할 2·3·4 | **합의 대기** |
-| GET | `/api/teams/:teamId/schedules` | 팀 단위 일정 조회 (F4 → F6·F7) | 역할 4 | `DRAFT` |
+| GET | `/api/teams/:teamId/schedules` | 팀 단위 일정 조회 (F4 → F6·F7) | 역할 4 | `합의완료` |
 | | | 부담도·여유도 결과 조회 (F7 → F6) | 역할 6·7 | **합의 대기** |
 
 **`Method`·`Path`가 비어 있는 것은 아직 정해지지 않았다는 뜻입니다.**
@@ -226,13 +226,31 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | 403 | `FORBIDDEN` | 요청자가 그 팀 소속이 아님 (팀이 존재하지 않는 경우도 이 코드로 응답) |
 | 500 | `INTERNAL_ERROR` | 서버 오류 |
 
-### GET /api/teams/:teamId/schedules   `DRAFT`
+### GET /api/teams/:teamId/schedules   `합의완료`
 
-요청자가 속한 팀의 일정을 팀원 전체 범위로 조회합니다. Heatmap(F6)·부담도·여유도 계산(F7)용입니다. / 담당: 역할 4 / 합의: (F6·F7 확인 대기)
+요청자가 속한 팀의 일정을 팀원 전체 범위로 조회합니다. Heatmap(F6)·부담도·여유도 계산(F7)용입니다. / 담당: 역할 4 / 합의: F6·F7 확인 완료 (2026-08-19)
 
 **인증** 필요 — `Authorization: Bearer <token>`
 
-**Request** — 바디 없음. 기간 필터(`from`/`to`)는 F6·F7과 합의 전이라 **이번 DRAFT에는 포함하지 않았습니다.** 지금은 전체 기간을 반환합니다.
+**Request** — 바디 없음. 쿼리 파라미터로 기간을 필터링합니다.
+
+| 파라미터 | 형식 | 필수 |
+|---|---|---|
+| `from` | ISO 8601 UTC (`Z` 고정, 예: `2026-08-18T00:00:00Z`) | `to`와 함께 생략 가능, 함께 주면 필수 |
+| `to` | ISO 8601 UTC (`Z` 고정) | 위와 동일 |
+
+- **`from`/`to`는 하나의 기간 계약**입니다. **둘 다 생략**하면 기존과 동일하게 **전체 기간**을 반환합니다(하위 호환). **한쪽만 주면 `400`** — 둘을 함께 요구하는 것이 F6/F7 쪽 구현도 단순합니다.
+- **의미는 `[from, to)`** — `from` 포함, `to` 미포함.
+- **`from >= to`면 `400`.**
+- **일부만 겹쳐도 포함합니다.** 일정 구간 `[starts_at, ends_at]`이 조회 구간과 하나라도 겹치면 포함 — 조건은 `starts_at < to AND ends_at >= from`.
+- **NULL 처리** (F6·F7 합의):
+  | `starts_at` | `ends_at` | 처리 |
+  |---|---|---|
+  | NULL | NULL | **제외** |
+  | NULL | 있음 | `ends_at`을 단일 시점으로 간주 — `from <= ends_at < to`면 포함 |
+  | 있음 | NULL | `starts_at`을 단일 시점으로 간주 — `from <= starts_at < to`면 포함 |
+  | 있음 | 있음 | 위 겹침 조건 그대로 적용 |
+- **`allDay=true`인 일정도 그대로 반환합니다.** 이 API는 값을 전달만 하고, 계산 시 `allDay` 처리(현재는 F7 계산 단계에서 제외)는 F4 책임이 아닙니다.
 
 **Response 200**
 ```json
@@ -258,11 +276,10 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | Status | code | 상황 |
 |---|---|---|
 | 400 | `INVALID_TEAM_ID` | `teamId`가 UUID 형식이 아님 |
+| 400 | `INVALID_DATE_RANGE` | `from`/`to` 중 하나만 옴 · 형식이 ISO 8601 UTC(`Z`)가 아님 · `from >= to` |
 | 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
 | 403 | `FORBIDDEN` | 요청자가 그 팀 소속이 아님 (팀이 존재하지 않는 경우도 이 코드로 응답 — 존재 여부를 구분해 알려주지 않음) |
 | 500 | `INTERNAL_ERROR` | 서버 오류 |
-
-**미확정 — 다음 합의 필요**: 기간 필터(`from`/`to`) 파라미터 형식과 의미. 필요해지면 F6·F7과 합의 후 `DRAFT`를 갱신합니다.
 
 ### POST /api/schedules/import   `DRAFT`
 
