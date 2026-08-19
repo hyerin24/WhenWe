@@ -2,7 +2,7 @@ import { Fragment, useMemo, useState } from 'react'
 import type { HeatmapItem } from '../mock/heatmap'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
-const PAGE_SIZE = 5
+const PAGE_SIZE = 7 // 한 주(일~토) 단위로 페이징
 
 type ViewMode = 'date' | 'weekday'
 
@@ -31,7 +31,7 @@ type SelectedCell = CellInfo & { col: string; hour: number }
 
 interface CalendarHeatmapProps {
   items: HeatmapItemInput[]
-  dates: string[] // 전체 기간 날짜 배열 (ISO, 오름차순) — 실제 날짜 뷰에서는 5일씩 나눠 페이징한다
+  dates: string[] // 전체 기간 날짜 배열 (ISO, 오름차순) — 실제 날짜 뷰에서는 7일씩 나눠 페이징한다
   hours: number[]
 }
 
@@ -58,12 +58,8 @@ export default function CalendarHeatmap({ items, dates, hours }: CalendarHeatmap
   }, [items])
 
   const weekdayColumns = useMemo(() => {
-    const seen: string[] = []
-    dates.forEach((date) => {
-      const label = toWeekdayLabel(date)
-      if (!seen.includes(label)) seen.push(label)
-    })
-    return seen
+    const present = new Set(dates.map(toWeekdayLabel))
+    return WEEKDAY_LABELS.filter((label) => present.has(label))
   }, [dates])
 
   // 요일 보기: 같은 요일에 해당하는 모든 날짜의 값을 평균해 하나의 칸으로 합친다
@@ -136,7 +132,7 @@ export default function CalendarHeatmap({ items, dates, hours }: CalendarHeatmap
               className="px-2.5 py-1 rounded-md border border-gray-300 bg-white text-sm disabled:opacity-40 disabled:cursor-default"
               onClick={() => setPageIndex((i) => Math.max(0, i - 1))}
               disabled={pageIndex === 0}
-              aria-label="이전 5일"
+              aria-label="이전 7일"
             >
               &lt;
             </button>
@@ -147,7 +143,7 @@ export default function CalendarHeatmap({ items, dates, hours }: CalendarHeatmap
               className="px-2.5 py-1 rounded-md border border-gray-300 bg-white text-sm disabled:opacity-40 disabled:cursor-default"
               onClick={() => setPageIndex((i) => Math.min(pages.length - 1, i + 1))}
               disabled={pageIndex === pages.length - 1}
-              aria-label="다음 5일"
+              aria-label="다음 7일"
             >
               &gt;
             </button>

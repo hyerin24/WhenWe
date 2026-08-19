@@ -15,27 +15,21 @@ export interface HeatmapResponse {
 
 export const TOTAL_MEMBERS = 7
 
-export const WEEKDAYS = ['월', '화', '수', '목', '금']
+export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 export const HOURS = Array.from({ length: 15 }, (_, i) => i + 9) // 9~23시
 
-function isWeekday(dateStr: string): boolean {
-  const day = new Date(`${dateStr}T00:00:00`).getDay()
-  return day >= 1 && day <= 5
-}
-
-function generateMonthWeekdays(year: number, month: number): string[] {
+function generateMonthDates(year: number, month: number): string[] {
   const daysInMonth = new Date(year, month, 0).getDate()
   const dates: string[] = []
   for (let day = 1; day <= daysInMonth; day += 1) {
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    if (isWeekday(dateStr)) dates.push(dateStr)
+    dates.push(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`)
   }
   return dates
 }
 
-// 한 달치 평일 날짜 — 실제 날짜 뷰의 페이징(5일씩)과 요일별 뷰의 집계 대상이 된다
-export const MONTH_DATES = generateMonthWeekdays(2026, 8)
+// 한 달치 전체 날짜(주말 포함) — 실제 날짜 뷰의 페이징(7일씩)과 요일별 뷰의 집계 대상이 된다
+export const MONTH_DATES = generateMonthDates(2026, 8)
 
 export function pseudoRandom(seed: number): number {
   const x = Math.sin(seed) * 10000
