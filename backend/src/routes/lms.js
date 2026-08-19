@@ -6,15 +6,17 @@ import { importSchedules } from '../services/scheduleImporter.js';
 const router = Router();
 
 // POST /api/lms/schedules — F2 raw 일정 JSON을 받아 F3 정제 → F4 저장을 잇습니다.
-// (docs/api.md 는 PR #17·#21 양쪽에서 아직 DRAFT/제안 단계라 이번 단계에서 수정하지 않았습니다.)
+// (docs/api.md — F2·F3·F4 확인 완료, 합의완료)
 //
 // 이 라우트는 orchestration 만 담당합니다 — refineSchedules() 와 importSchedules()
 // 어느 쪽도 서로를 호출하지 않고, 이 라우트가 순서대로 이어줍니다.
 router.post('/schedules', requireAuth, async (req, res) => {
   const body = req.body;
 
-  // 최소 형태 검증만 합니다. 정제 세부 규칙은 refineSchedules, 저장 세부 규칙은
-  // importSchedules 의 책임입니다.
+  // 최소 형태 검증만 합니다 — body가 object, items가 배열인지만 확인합니다.
+  // payloadVersion·collectedAt·parseFailedCount·parseFailures 는 F2가 함께 보내지만
+  // 이번 MVP에서는 검증 대상도 저장 대상도 아닙니다. refineSchedules() 가 items 외의
+  // 필드를 읽지 않으므로, 이 필드들이 있어도/없어도 요청은 동일하게 처리됩니다.
   if (!body || typeof body !== 'object' || Array.isArray(body) || !Array.isArray(body.items)) {
     return res.status(400).json({ code: 'INVALID_PAYLOAD', message: '요청 형식이 올바르지 않습니다.' });
   }
@@ -40,8 +42,7 @@ router.post('/schedules', requireAuth, async (req, res) => {
     return res.status(status).json({ code: result.code, message: result.message });
   }
 
-  // 응답 계약 — 잠정. PR #17 제안({ savedCount, skippedCount })과 충돌 있음.
-  // 결정 전까지 기존 importSchedules 의 결과를 그대로 노출합니다. 아래 보고 §5 참고.
+  // 응답 계약 확정 (F2·F3·F4 합의) — { importedCount } 만 사용, savedCount/skippedCount 는 채택하지 않음.
   return res.status(200).json({ importedCount: result.importedCount });
 });
 
