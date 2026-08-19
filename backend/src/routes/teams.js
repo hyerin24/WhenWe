@@ -353,11 +353,12 @@ router.get('/:teamId/schedules', requireAuth, async (req, res) => {
   const userIds = members.map((m) => m.user_id);
 
   // ③ 그 팀원들의 schedules.
-  // title · courseName 은 여기서 아예 select 하지 않습니다 — 본인 것이든 남의 것이든
-  // Heatmap/F7 계산에 필요 없는 개인 정보는 응답 스키마에서 원천 제외합니다.
+  // title 은 여기서 아예 select 하지 않습니다 — 본인 것이든 남의 것이든
+  // Heatmap/F7 계산·표시에 필요 없는 개인 정보는 응답 스키마에서 원천 제외합니다.
+  // course_name 은 F7 최종 확인에 따라 포함합니다 (title 과 달리 계산/표시에 필요).
   let query = admin
     .from('schedules')
-    .select('id, user_id, type, starts_at, ends_at, all_day, source')
+    .select('id, user_id, type, starts_at, ends_at, all_day, course_name, source')
     .in('user_id', userIds);
 
   if (range) {
@@ -391,6 +392,7 @@ router.get('/:teamId/schedules', requireAuth, async (req, res) => {
       startAt: s.starts_at,
       endAt: s.ends_at,
       allDay: s.all_day,
+      courseName: s.course_name,
       source: s.source,
     })),
   });
