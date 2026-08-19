@@ -18,7 +18,10 @@ F1  fetchLmsCalendarHtml()   Calendar HTML 확보      (#3)
 | `sendLmsSchedules.js` | F2 (#4) | 일정 JSON을 서버로 POST |
 | `lmsParseError.js` | F2 (#4) | 파싱 단계 에러 |
 
-## 쓰는 법
+## 쓰는 법 (프론트 빌드 세팅이 끝난 뒤)
+
+> ⚠️ **아직 `frontend`에 `package.json`·번들러가 없습니다.** 아래 `import`는 세팅이 올라온 뒤부터 동작합니다.
+> **지금 당장 확인하려면 아래 [확인 방법](#확인-방법)의 콘솔 붙여넣기를 쓰세요.**
 
 ```js
 import { fetchLmsCalendarHtml } from './fetchLmsCalendarHtml.js'
@@ -68,16 +71,35 @@ LMS가 날짜 칸에 표시하는 개수(`title="5 일정"`)와 실제로 뽑은
 
 ## 확인 방법
 
-빌드 세팅이 아직 없으므로, 로그인된 LMS 탭의 개발자 도구 콘솔에서 확인합니다.
+번들러가 없으니 **LMS 탭의 개발자 도구 콘솔에 코드를 직접 붙여넣어** 확인합니다.
+fetch가 `credentials: 'include'`로 본인 세션을 쓰기 때문에, **반드시 `lms.kyonggi.ac.kr` 탭에서** 실행해야 합니다.
+다른 사이트나 로컬 파일에서 실행하면 출처가 달라 요청이 막힙니다.
 
-```js
-const parsed = parseLmsCalendarHtml(await fetchLmsCalendarHtml({ year: 2026, month: 7 }))
-console.log(parsed.itemCount, parsed.parseFailedCount)
-console.table(parsed.items.map(({ dateKst, kind, hasTime }) => ({ dateKst, kind, hasTime })))
-```
+1. 크롬에서 **LMS에 로그인**하고 캘린더 페이지를 엽니다 — `https://lms.kyonggi.ac.kr/calendar/view.php?view=month&course=1`
+2. `F12` → **Console** 탭. 처음이면 콘솔에 `allow pasting` 을 입력하고 Enter (크롬이 붙여넣기를 막아 둡니다)
+3. 아래 파일 내용을 **이 순서로** 붙여넣습니다. 붙여넣을 때 각 파일 맨 위의 `import …` 줄은 지우고, `export ` 단어도 지웁니다 (콘솔은 모듈이 아닙니다)
 
-- `itemCount`가 LMS 캘린더 화면에 보이는 일정 개수와 같은지
-- `parseFailedCount`가 0인지 (0이 아니면 `parseFailures`의 `reason`을 확인)
+   ```text
+   lmsErrors.js → fetchLmsCalendarHtml.js → lmsParseError.js
+   → classifyLmsEvent.js → parseLmsCalendarHtml.js → sendLmsSchedules.js
+   ```
+
+4. 그다음 확인할 달을 넣어 실행합니다
+
+   ```js
+   const parsed = parseLmsCalendarHtml(await fetchLmsCalendarHtml({ year: 2026, month: 9 }))
+   console.log(`추출 ${parsed.itemCount}건 · 실패 ${parsed.parseFailedCount}건`)
+   console.table(parsed.items.map(({ dateKst, kind, hasTime, title }) => ({ dateKst, kind, hasTime, title })))
+   ```
+
+무엇을 보나:
+
+- `itemCount`가 **LMS 캘린더 화면에 보이는 일정 개수와 같은지**
+- `parseFailedCount`가 0인지 (0이 아니면 `parseFailures`의 `reason` 확인)
+- 로그아웃 상태로 실행하면 빈 결과가 아니라 `LmsAuthError`가 나는지
+
+시각까지 보려면 `parsed.items[0].sourceUrl`(일 뷰 링크)을 fetch해서 `parseLmsDayHtml()`에 넣고
+`mergeParsedCalendars([parsed, day])`로 합칩니다.
 
 > ⚠️ **가져온 HTML·일정을 저장소에 커밋하지 마세요.** 개인 일정이 들어 있습니다.
 > 저장해야 하면 `*.local.html`로 저장합니다 ([.gitignore](../../../.gitignore)).
