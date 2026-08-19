@@ -15,6 +15,30 @@ function isValidIsoUtc(value) {
   return typeof value === 'string' && ISO_UTC_RE.test(value) && !Number.isNaN(Date.parse(value));
 }
 
+// F5 와 합의한 공통 Team DTO. POST /api/teams · POST /api/teams/join ·
+// GET /api/teams · GET /api/teams/:teamId 가 전부 이 모양으로 응답합니다.
+function toTeamDto(team, memberCount) {
+  return {
+    id: team.id,
+    name: team.name,
+    inviteCode: team.invite_code,
+    createdBy: team.created_by,
+    createdAt: team.created_at,
+    memberCount,
+  };
+}
+
+// 팀 하나의 실제 memberCount — 저장된 값이 아니라 team_members 를 매번 COUNT 합니다.
+async function countTeamMembers(admin, teamId) {
+  const { count, error } = await admin
+    .from('team_members')
+    .select('user_id', { count: 'exact', head: true })
+    .eq('team_id', teamId);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 // POST /api/teams — 팀 생성 (docs/api.md 참고)
 //
 // teams INSERT + team_members INSERT 를 create_team_with_owner() 하나로 묶어
@@ -48,13 +72,16 @@ router.post('/', requireAuth, async (req, res) => {
 
     if (!error) {
       const team = Array.isArray(data) ? data[0] : data;
-      return res.status(201).json({
-        id: team.id,
-        name: team.name,
-        inviteCode: team.invite_code,
-        createdBy: team.created_by,
-        createdAt: team.created_at,
-      });
+      // create_team_with_owner() 가 생성자 membership 까지 원자적으로 만들지만,
+      // 상수 1을 가정하지 않고 실제 team_members COUNT 를 다시 확인합니다.
+      let memberCount;
+      try {
+        memberCount = await countTeamMembers(admin, team.id);
+      } catch (countError) {
+        console.error('team_members count failed after create', countError);
+        return res.status(500).json({ code: 'INTERNAL_ERROR', message: '팀원 수를 조회하지 못했습니다.' });
+      }
+      return res.status(201).json(toTeamDto(team, memberCount));
     }
 
     lastError = error;
@@ -131,10 +158,66 @@ router.post('/join', requireAuth, async (req, res) => {
     return res.status(500).json({ code: 'INTERNAL_ERROR', message: '팀 참가에 실패했습니다.' });
   }
 
+  // F5 결정: 이 응답은 Team DTO로 통일하지 않습니다. 계약 불일치는 프론트에서 처리하기로 합의됨.
   return res.status(201).json({
     id: team.id,
     name: team.name,
     joinedAt: memberRow.joined_at,
+  });
+});
+
+// GET /api/teams — 내가 속한 팀 목록 (docs/api.md 참고)
+//
+// team_members 를 req.user.id 로 먼저 좁혀 "내 팀 id 목록"을 확정한 뒤에만
+// teams 를 조회합니다 — Secret 클라이언트를 쓰더라도 다른 사용자의 팀은
+// 이 범위 밖이라 애초에 조회 대상에 들어오지 않습니다.
+router.get('/', requireAuth, async (req, res) => {
+  const admin = getAdminClient();
+
+  const { data: memberships, error: membershipError } = await admin
+    .from('team_members')
+    .select('team_id')
+    .eq('user_id', req.user.id);
+
+  if (membershipError) {
+    console.error('team_members lookup by user failed', membershipError);
+    return res.status(500).json({ code: 'INTERNAL_ERROR', message: '팀 목록을 조회하지 못했습니다.' });
+  }
+
+  const teamIds = memberships.map((m) => m.team_id);
+
+  if (teamIds.length === 0) {
+    return res.status(200).json({ items: [] });
+  }
+
+  const { data: teams, error: teamsError } = await admin
+    .from('teams')
+    .select('id, name, invite_code, created_by, created_at')
+    .in('id', teamIds);
+
+  if (teamsError) {
+    console.error('teams lookup by ids failed', teamsError);
+    return res.status(500).json({ code: 'INTERNAL_ERROR', message: '팀 목록을 조회하지 못했습니다.' });
+  }
+
+  // 팀별 memberCount 를 한 번의 쿼리로 계산합니다 (N+1 COUNT 방지).
+  const { data: allMemberRows, error: countError } = await admin
+    .from('team_members')
+    .select('team_id')
+    .in('team_id', teamIds);
+
+  if (countError) {
+    console.error('team_members bulk count failed', countError);
+    return res.status(500).json({ code: 'INTERNAL_ERROR', message: '팀원 수를 조회하지 못했습니다.' });
+  }
+
+  const memberCountByTeam = {};
+  for (const row of allMemberRows) {
+    memberCountByTeam[row.team_id] = (memberCountByTeam[row.team_id] ?? 0) + 1;
+  }
+
+  return res.status(200).json({
+    items: teams.map((team) => toTeamDto(team, memberCountByTeam[team.id] ?? 0)),
   });
 });
 
@@ -170,10 +253,10 @@ router.get('/:teamId', requireAuth, async (req, res) => {
     return res.status(403).json({ code: 'FORBIDDEN', message: '접근할 수 없는 팀입니다.' });
   }
 
-  // ② 팀 기본 정보
+  // ② 팀 기본 정보 — F5 와 합의한 공통 Team DTO 를 위해 invite_code 도 함께 읽습니다.
   const { data: team, error: teamError } = await admin
     .from('teams')
-    .select('id, name, created_by, created_at')
+    .select('id, name, invite_code, created_by, created_at')
     .eq('id', teamId)
     .maybeSingle();
 
@@ -189,23 +272,15 @@ router.get('/:teamId', requireAuth, async (req, res) => {
   }
 
   // ③ memberCount — team_members 실제 행 개수를 매번 계산합니다.
-  const { count, error: countError } = await admin
-    .from('team_members')
-    .select('user_id', { count: 'exact', head: true })
-    .eq('team_id', teamId);
-
-  if (countError) {
+  let memberCount;
+  try {
+    memberCount = await countTeamMembers(admin, teamId);
+  } catch (countError) {
     console.error('team_members count failed', countError);
     return res.status(500).json({ code: 'INTERNAL_ERROR', message: '팀원 수를 조회하지 못했습니다.' });
   }
 
-  return res.status(200).json({
-    id: team.id,
-    name: team.name,
-    memberCount: count ?? 0,
-    createdBy: team.created_by,
-    createdAt: team.created_at,
-  });
+  return res.status(200).json(toTeamDto(team, memberCount));
 });
 
 // GET /api/teams/:teamId/schedules — 팀 단위 일정 조회 (docs/api.md 참고)

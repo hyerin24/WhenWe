@@ -67,9 +67,10 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 
 | Method | Path | 설명 | 담당 | 상태 |
 |---|---|---|---|---|
-| POST | `/api/teams` | 팀 생성 (F4) | 역할 4 | `DRAFT` |
-| POST | `/api/teams/join` | 초대 코드로 팀 참가 (F4) | 역할 4 | `DRAFT` |
-| GET | `/api/teams/:teamId` | 팀 기본 정보 조회 (F4 → F5) | 역할 4 | `DRAFT` |
+| POST | `/api/teams` | 팀 생성 (F4) | 역할 4 | `합의완료` |
+| POST | `/api/teams/join` | 초대 코드로 팀 참가 (F4) | 역할 4 | `합의완료` |
+| GET | `/api/teams` | 내가 속한 팀 목록 (F4 → F5) | 역할 4 | `합의완료` |
+| GET | `/api/teams/:teamId` | 팀 기본 정보 조회 (F4 → F5) | 역할 4 | `합의완료` |
 | POST | `/api/schedules/import` | 정제 완료 일정 저장/갱신 (F3 → F4) | 역할 3·4 | `DRAFT` |
 | | | 브라우저 수집 결과 전달 (F2 → F3·F4) | 역할 2·3·4 | **합의 대기** |
 | GET | `/api/teams/:teamId/schedules` | 팀 단위 일정 조회 (F4 → F6·F7) | 역할 4 | `합의완료` |
@@ -127,9 +128,31 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 
 ## 확정된 엔드포인트
 
-### POST /api/teams   `DRAFT`
+## 공통 Team DTO
 
-팀을 생성하고 생성자를 팀원으로 추가합니다. / 담당: 역할 4 / 합의: (F5 확인 대기)
+`POST /api/teams` · `GET /api/teams` · `GET /api/teams/:teamId` 는
+**전부 같은 모양**으로 응답합니다 (목록은 이 DTO를 `items` 배열로 감쌉니다).
+
+> ⚠️ **`POST /api/teams/join`은 이 DTO를 따르지 않습니다.** 별도 계약을 유지합니다 — 아래 참고. 그 응답 불일치는 프론트(F5)에서 처리하기로 합의했습니다.
+
+```json
+{
+  "id": "uuid",
+  "name": "string",
+  "inviteCode": "string · 대문자+숫자 8자 (혼동 문자 제외)",
+  "createdBy": "uuid · 생성자의 user id",
+  "createdAt": "ISO 8601 UTC",
+  "memberCount": 4
+}
+```
+
+> **`memberCount`는 항상 `team_members`를 실시간 COUNT한 값입니다.** `teams` 테이블에 저장된 값이 아니고, Frontend가 보내는 값도 쓰지 않습니다.
+>
+> `inviteCode`는 F5 합의에 따라 **Team 타입에 필수 필드**입니다 — 이전 버전에서는 "최소 노출" 원칙으로 `GET /api/teams/:teamId` 응답에서 제외했지만, 실제 프론트 통합 결과 팀원 전원이 이 값을 필요로 해 포함하는 쪽으로 변경했습니다.
+
+### POST /api/teams   `합의완료`
+
+팀을 생성하고 생성자를 팀원으로 추가합니다. / 담당: 역할 4 / 합의: F5 확인 완료 (2026-08-19)
 
 **인증** 필요 — `Authorization: Bearer <token>`
 
@@ -140,16 +163,7 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 }
 ```
 
-**Response 201**
-```json
-{
-  "id": "uuid",
-  "name": "string",
-  "inviteCode": "string · 대문자+숫자 8자 (혼동 문자 제외)",
-  "createdBy": "uuid · 생성자의 user id",
-  "createdAt": "ISO 8601 UTC"
-}
-```
+**Response 201** — 공통 Team DTO. 생성 직후 `memberCount`는 항상 `1`입니다(생성자만 있는 상태를 실제로 다시 COUNT한 결과).
 
 **에러**
 
@@ -159,9 +173,11 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
 | 500 | `INTERNAL_ERROR` | 서버 오류 (invite_code 재시도 소진 포함) |
 
-### POST /api/teams/join   `DRAFT`
+### POST /api/teams/join   `합의완료`
 
-초대 코드로 기존 팀에 참가합니다. / 담당: 역할 4 / 합의: (F5 확인 대기)
+초대 코드로 기존 팀에 참가합니다. / 담당: 역할 4 / 합의: F5 확인 완료 (2026-08-19)
+
+> **이 엔드포인트는 공통 Team DTO를 쓰지 않습니다.** 아래 자체 계약을 그대로 유지합니다 — 다른 팀 관련 응답과의 불일치는 프론트에서 처리하기로 F5와 합의했습니다.
 
 **인증** 필요 — `Authorization: Bearer <token>`
 
@@ -192,11 +208,10 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | 404 | `TEAM_NOT_FOUND` | 그 코드로 찾을 수 있는 팀이 없음 |
 | 409 | `ALREADY_TEAM_MEMBER` | 이미 그 팀에 참가한 상태 (동시 요청으로 인한 DB 제약 위반도 이 코드로 변환) |
 | 500 | `INTERNAL_ERROR` | 서버 오류 |
-````
 
-### GET /api/teams/:teamId   `DRAFT`
+### GET /api/teams   `합의완료`
 
-팀 기본 정보와 실제 팀원 수를 조회합니다. / 담당: 역할 4 / 합의: (F5 확인 대기)
+**요청자가 속한 팀 목록**을 반환합니다. / 담당: 역할 4 / 합의: F5 확인 완료 (2026-08-19)
 
 **인증** 필요 — `Authorization: Bearer <token>`
 
@@ -205,17 +220,30 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 **Response 200**
 ```json
 {
-  "id": "uuid",
-  "name": "string",
-  "memberCount": 3,
-  "createdBy": "uuid · 생성자의 user id",
-  "createdAt": "ISO 8601 UTC"
+  "items": [ /* 공통 Team DTO */ ]
 }
 ```
 
-> **`memberCount`의 Source of Truth는 `public.team_members`입니다.** `teams` 테이블에 별도 카운트 컬럼을 두지 않고, **요청마다 `team_members` 행 수를 직접 계산**합니다. Frontend는 이 값을 표시만 하고, 자체적으로 증감시키거나 서버에 값을 보내지 않습니다.
->
-> `inviteCode`는 이 응답에 **포함하지 않습니다.** 일반 팀 정보 화면에는 필요 없고, `POST /api/teams`(생성 시 응답)로 생성자만 이미 확인한 값입니다 — 최소 노출 원칙에 따라 매 조회마다 다시 노출하지 않습니다.
+- 속한 팀이 없으면 `{ "items": [] }`.
+- **다른 사용자의 팀은 절대 포함되지 않습니다** — `team_members`를 `req.user.id`로 먼저 좁혀 팀 id 범위를 확정한 뒤에만 `teams`를 조회합니다.
+
+**에러**
+
+| Status | code | 상황 |
+|---|---|---|
+| 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
+| 500 | `INTERNAL_ERROR` | 서버 오류 |
+````
+
+### GET /api/teams/:teamId   `합의완료`
+
+팀 기본 정보와 실제 팀원 수를 조회합니다. / 담당: 역할 4 / 합의: F5 확인 완료 (2026-08-19)
+
+**인증** 필요 — `Authorization: Bearer <token>`
+
+**Request** — 바디 없음.
+
+**Response 200** — 공통 Team DTO.
 
 **에러**
 
