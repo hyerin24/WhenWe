@@ -67,7 +67,7 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 
 | Method | Path | 설명 | 담당 | 상태 |
 |---|---|---|---|---|
-| | | 브라우저 수집 결과 전달 (F2 → F3·F4) | 역할 2·3·4 | **합의 대기** |
+| POST *(제안)* | `/api/lms/schedules` *(제안)* | 브라우저 수집 결과 전달 (F2 → F3·F4) | 역할 2·3·4 | **DRAFT** |
 | | | 팀 단위 일정 조회 (F4 → F6·F7) | 역할 4 | **합의 대기** |
 | | | 부담도·여유도 결과 조회 (F7 → F6) | 역할 6·7 | **합의 대기** |
 
@@ -118,3 +118,65 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | 400 | | |
 | 404 | | |
 ````
+
+---
+
+## 엔드포인트 상세
+
+### POST /api/lms/schedules   `DRAFT`
+
+브라우저(F2)가 파싱한 LMS 일정 JSON을 서버로 전달한다. / 담당: 역할 2 제안 / 합의: **대기 중 — 역할 3·4 확인 필요**
+
+> ⚠️ **경로·필드 모두 역할 2의 제안입니다.** 역할 4(전달 API)·역할 3(정제 입력)이 확인하기 전까지 확정이 아닙니다.
+> 보내는 쪽 구현은 `frontend/src/lms/sendLmsSchedules.js`이고, 경로가 바뀌면 그 파일의 `DRAFT_ENDPOINT`도 같이 고칩니다.
+
+**인증** 필요 — `Authorization: Bearer <Supabase access token>`
+서버는 토큰에서 얻은 `user.id`에 일정을 붙입니다. **브라우저는 `userId`를 보내지 않습니다.**
+
+**Request**
+
+```json
+{
+  "items": [
+    {
+      "sourceEventId": "string|null · LMS 이벤트 번호. 중복 판단의 1순위 키",
+      "title":         "string · 필수 · LMS에 표시된 제목 그대로 (정제 안 함)",
+      "dateKst":       "string · 필수 · YYYY-MM-DD · LMS가 표시하는 한국 날짜",
+      "startAt":       "string|null · ISO 8601 UTC · 시각을 모르면 null",
+      "endAt":         "string|null · ISO 8601 UTC · 종료가 없으면 null",
+      "hasTime":       "boolean · false면 시각 미상(자정 아님)",
+      "kind":          "assignment | exam | class | other | unknown",
+      "module":        "string|null · Moodle 모듈명(assign·quiz·feedback…). 서버가 다시 분류할 때 쓴다",
+      "scope":         "global | course | user | group | unknown",
+      "courseName":    "string|null · 과목명 (월 뷰에서는 null)",
+      "sourceUrl":     "string|null · 출처 링크"
+    }
+  ],
+  "payloadVersion":   "string · 'lms-raw-1' · 형태가 바뀌면 올린다",
+  "source":           "string · 'lms.kyonggi.ac.kr'",
+  "collectedAt":      "string · ISO 8601 UTC · 브라우저가 LMS에서 받아온 시각",
+  "parseFailedCount": "number · 파싱 실패 건수",
+  "parseFailures":    "array · [{ reason, dateKst, index }] · **원문은 담지 않는다**"
+}
+```
+
+**정제 전 데이터입니다.** 중복 제거·시각 보정·종류 재분류는 서버(F3)가 합니다.
+`hasTime: false`는 **시각을 모른다**는 뜻입니다. LMS 월 뷰에는 시각이 없어서, 00:00으로 채우면 진짜 자정 마감과 구분되지 않습니다.
+
+**Response 201** *(제안)*
+
+```json
+{
+  "savedCount": 12,
+  "skippedCount": 3
+}
+```
+
+**에러**
+
+| Status | code | 상황 |
+|---|---|---|
+| 400 | `INVALID_SCHEDULE` | 필수 필드 누락 · 시각 형식 오류 — **위치와 건수만** 회신 |
+| 401 | `UNAUTHORIZED` | WhenWe 로그인 토큰 없음 · 만료 |
+
+> LMS 로그인 세션·쿠키는 **어떤 필드로도 서버에 오지 않습니다.** 브라우저를 떠나는 것은 위 일정 데이터뿐입니다.
