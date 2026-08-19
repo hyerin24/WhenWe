@@ -168,6 +168,15 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
       "availabilityRate": null,
       "members": null
     }
+  ],
+  "dueAssignments": [
+    {
+      "date": "2026-08-19",
+      "hour": 23,
+      "userId": "...",
+      "displayName": "팀원1",
+      "courseName": "자료구조"
+    }
   ]
 }
 ```
@@ -180,6 +189,19 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | `availableCount` | 해당 시간대에 여유로운 인원 수. **그 시간대를 계산할 팀원 데이터 자체가 없으면 `null`** (7명 전원이 바빠서 0명인 것과 구분한다) |
 | `availabilityRate` | `availableCount / totalCount`. `availableCount`가 `null`이면 `null` |
 | `members` | 팀원별 상세. 최소 정보만: `userId`, `displayName`, `available`. `availableCount`가 `null`이면 마찬가지로 `null` |
+
+**`items`와 `type: assignment` 일정의 관계 (합의된 A안)**
+
+과제(assignment)는 `availableCount`·`availabilityRate`·`members`를 계산할 때 **점유 시간으로 세지 않는다.** 마감이 있다고 그 시간을 "불가능"으로 만들지 않는다 — 대신 참고 정보로만 별도로 보여준다.
+
+| 필드 (`dueAssignments[]`) | 설명 |
+|---|---|
+| `date` | 마감일 (**KST**, `YYYY-MM-DD`) |
+| `hour` | 마감 시각 (**KST**, 0~23). 정확한 시각을 모르면(day 뷰 미병합 등) `null` |
+| `userId` / `displayName` | 마감이 있는 팀원. `members`와 같은 최소 정보 원칙 |
+| `courseName` | 과목명만 노출한다. **과제 제목(원문)은 넣지 않는다** — F7 완료 조건 "응답·로그에 개인 일정 원문 미노출" 준수 |
+
+> ⚠️ 이 `dueAssignments` 필드는 역할7이 추가 제안한 것으로, 아직 역할6과 화면에서 어떻게 쓸지는 논의 전입니다 (필드 자체는 쓰지 않아도 무방).
 
 **에러**
 
