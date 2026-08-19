@@ -153,7 +153,7 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | `id` | string | F2의 `sourceEventId` 그대로. 없으면 서버가 생성 |
 | `title` | string | 일정 제목 |
 | `type` | assignment\|exam\|class\|other\|unknown | F2의 `kind`를 그대로 받음 |
-| `startAt` | string | ISO 8601 UTC. 시각 없으면(allDay:true) 그 날짜 00:00(KST)으로 채움 |
+| `startAt` | string\|null | ISO 8601 UTC. hasTime=false인 경우 임의로 시각을 생성하지 않으며 F2의 값(null)을 그대로 유지한다 |
 | `endAt` | string\|null | ISO 8601 UTC. 종료가 없으면 null |
 | `allDay` | boolean | F2의 `hasTime`이 false면 true |
 | `courseName` | string\|null | 과목명. 없으면 null |
