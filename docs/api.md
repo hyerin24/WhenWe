@@ -138,8 +138,8 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
   "id": "521535",
   "title": "3주차 과제",
   "type": "assignment",
-  "startAt": "2025-03-15T05:59:00Z",
-  "endAt": "2025-03-15T14:59:00Z",
+  "startAt": "2025-03-15T14:59:00Z",
+  "endAt": null,
   "allDay": false,
   "courseName": "자료구조",
   "source": "lms"
@@ -153,7 +153,7 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | `id` | string | F2의 `sourceEventId` 그대로. 없으면 서버가 생성 |
 | `title` | string | 일정 제목 |
 | `type` | assignment\|exam\|class\|other\|unknown | F2의 `kind`를 그대로 받음 |
-| `startAt` | string\|null | ISO 8601 UTC. 시각 없으면 null |
+| `startAt` | string | ISO 8601 UTC. 시각 없으면(allDay:true) 그 날짜 00:00(KST)으로 채움 |
 | `endAt` | string\|null | ISO 8601 UTC. 종료가 없으면 null |
 | `allDay` | boolean | F2의 `hasTime`이 false면 true |
 | `courseName` | string\|null | 과목명. 없으면 null |
