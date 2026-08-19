@@ -113,14 +113,16 @@
 
 ## 9. 역할 (7명)
 
-담당자 이름은 각자 채워주세요.
+담당은 **GitHub 계정**으로 적습니다. 아직 비어 있는 칸은 각자 채워주세요.
+저장소 collaborator 7명은 **전원 초대를 수락했습니다** —
+`@hyerin24` `@jihuns22` `@kimyena4226` `@myhousemouse` `@HJ-Kyoungmo-Kim` `@naseullee` `@chaecsd`
 
 | # | 역할 | 하는 일 | 주 영역 | 담당 |
 |---|---|---|---|---|
 | 1 | LMS 데이터 수집 A | **브라우저에서** LMS Calendar HTML fetch | 브라우저 실행 모듈 — 정확한 디렉터리는 프론트 구조 확정 후 결정 | |
 | 2 | LMS 데이터 수집 B | Calendar HTML 파싱 · **일정 JSON 생성** | 브라우저 실행 모듈 — 정확한 디렉터리는 프론트 구조 확정 후 결정 | |
 | 3 | 데이터 정제 | 브라우저가 보낸 일정 JSON을 **서버에서** 공통 스키마로 정규화 | `backend/` | |
-| 4 | 팀장 — Backend/DB + 팀 기능 | **수집된 일정 JSON을 전달받는 API** · Supabase 스키마 · 저장/조회 · 팀 생성/초대/참가 · 팀 데이터 연결 | `backend/` | |
+| 4 | 팀장 — Backend/DB + 팀 기능 | **수집된 일정 JSON을 전달받는 API** · Supabase 스키마 · 저장/조회 · 팀 생성/초대/참가 · 팀 데이터 연결 | `backend/` | `@hyerin24` |
 | 5 | Frontend A — 로그인·팀 화면 | 로그인, 팀 목록·생성·참가 | `frontend/` | |
 | 6 | Frontend B — Calendar Heatmap | Heatmap 화면 · 시각화 | `frontend/` | |
 | 7 | 여유도 알고리즘 + 통합 | 개인 부담도 계산 → 팀 부담도·여유도 계산 → Heatmap용 결과 생성 → 전체 통합 | `backend/` | |
