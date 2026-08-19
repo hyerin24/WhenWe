@@ -67,8 +67,12 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 
 | Method | Path | 설명 | 담당 | 상태 |
 |---|---|---|---|---|
+| POST | `/api/teams` | 팀 생성 (F4) | 역할 4 | `DRAFT` |
+| POST | `/api/teams/join` | 초대 코드로 팀 참가 (F4) | 역할 4 | `DRAFT` |
+| GET | `/api/teams/:teamId` | 팀 기본 정보 조회 (F4 → F5) | 역할 4 | `DRAFT` |
+| POST | `/api/schedules/import` | 정제 완료 일정 저장/갱신 (F3 → F4) | 역할 3·4 | `DRAFT` |
 | | | 브라우저 수집 결과 전달 (F2 → F3·F4) | 역할 2·3·4 | **합의 대기** |
-| | | 팀 단위 일정 조회 (F4 → F6·F7) | 역할 4 | **합의 대기** |
+| GET | `/api/teams/:teamId/schedules` | 팀 단위 일정 조회 (F4 → F6·F7) | 역할 4 | `DRAFT` |
 | | | 부담도·여유도 결과 조회 (F7 → F6) | 역할 6·7 | **합의 대기** |
 
 **`Method`·`Path`가 비어 있는 것은 아직 정해지지 않았다는 뜻입니다.**
@@ -118,3 +122,192 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | 400 | | |
 | 404 | | |
 ````
+
+---
+
+## 확정된 엔드포인트
+
+### POST /api/teams   `DRAFT`
+
+팀을 생성하고 생성자를 팀원으로 추가합니다. / 담당: 역할 4 / 합의: (F5 확인 대기)
+
+**인증** 필요 — `Authorization: Bearer <token>`
+
+**Request**
+```json
+{
+  "name": "string · 필수 · trim 후 1~50자"
+}
+```
+
+**Response 201**
+```json
+{
+  "id": "uuid",
+  "name": "string",
+  "inviteCode": "string · 대문자+숫자 8자 (혼동 문자 제외)",
+  "createdBy": "uuid · 생성자의 user id",
+  "createdAt": "ISO 8601 UTC"
+}
+```
+
+**에러**
+
+| Status | code | 상황 |
+|---|---|---|
+| 400 | `INVALID_NAME` | `name`이 비어 있거나(trim 후) 50자를 초과 |
+| 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
+| 500 | `INTERNAL_ERROR` | 서버 오류 (invite_code 재시도 소진 포함) |
+
+### POST /api/teams/join   `DRAFT`
+
+초대 코드로 기존 팀에 참가합니다. / 담당: 역할 4 / 합의: (F5 확인 대기)
+
+**인증** 필요 — `Authorization: Bearer <token>`
+
+**Request**
+```json
+{
+  "inviteCode": "string · 필수 · trim 후 대문자 8자"
+}
+```
+
+**Response 201**
+```json
+{
+  "id": "uuid · 참가한 팀의 id",
+  "name": "string · 팀 이름",
+  "joinedAt": "ISO 8601 UTC"
+}
+```
+
+> `inviteCode`는 요청자가 이미 알고 있는 값이라 응답에 다시 포함하지 않습니다.
+
+**에러**
+
+| Status | code | 상황 |
+|---|---|---|
+| 400 | `INVALID_INVITE_CODE` | `inviteCode`가 비어 있거나 형식(8자)에 맞지 않음 |
+| 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
+| 404 | `TEAM_NOT_FOUND` | 그 코드로 찾을 수 있는 팀이 없음 |
+| 409 | `ALREADY_TEAM_MEMBER` | 이미 그 팀에 참가한 상태 (동시 요청으로 인한 DB 제약 위반도 이 코드로 변환) |
+| 500 | `INTERNAL_ERROR` | 서버 오류 |
+````
+
+### GET /api/teams/:teamId   `DRAFT`
+
+팀 기본 정보와 실제 팀원 수를 조회합니다. / 담당: 역할 4 / 합의: (F5 확인 대기)
+
+**인증** 필요 — `Authorization: Bearer <token>`
+
+**Request** — 바디 없음.
+
+**Response 200**
+```json
+{
+  "id": "uuid",
+  "name": "string",
+  "memberCount": 3,
+  "createdBy": "uuid · 생성자의 user id",
+  "createdAt": "ISO 8601 UTC"
+}
+```
+
+> **`memberCount`의 Source of Truth는 `public.team_members`입니다.** `teams` 테이블에 별도 카운트 컬럼을 두지 않고, **요청마다 `team_members` 행 수를 직접 계산**합니다. Frontend는 이 값을 표시만 하고, 자체적으로 증감시키거나 서버에 값을 보내지 않습니다.
+>
+> `inviteCode`는 이 응답에 **포함하지 않습니다.** 일반 팀 정보 화면에는 필요 없고, `POST /api/teams`(생성 시 응답)로 생성자만 이미 확인한 값입니다 — 최소 노출 원칙에 따라 매 조회마다 다시 노출하지 않습니다.
+
+**에러**
+
+| Status | code | 상황 |
+|---|---|---|
+| 400 | `INVALID_TEAM_ID` | `teamId`가 UUID 형식이 아님 |
+| 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
+| 403 | `FORBIDDEN` | 요청자가 그 팀 소속이 아님 (팀이 존재하지 않는 경우도 이 코드로 응답) |
+| 500 | `INTERNAL_ERROR` | 서버 오류 |
+
+### GET /api/teams/:teamId/schedules   `DRAFT`
+
+요청자가 속한 팀의 일정을 팀원 전체 범위로 조회합니다. Heatmap(F6)·부담도·여유도 계산(F7)용입니다. / 담당: 역할 4 / 합의: (F6·F7 확인 대기)
+
+**인증** 필요 — `Authorization: Bearer <token>`
+
+**Request** — 바디 없음. 기간 필터(`from`/`to`)는 F6·F7과 합의 전이라 **이번 DRAFT에는 포함하지 않았습니다.** 지금은 전체 기간을 반환합니다.
+
+**Response 200**
+```json
+{
+  "items": [
+    {
+      "userId": "uuid",
+      "scheduleId": "uuid",
+      "type": "assignment | exam | class | other | unknown",
+      "startAt": "ISO 8601 UTC | null",
+      "endAt": "ISO 8601 UTC | null",
+      "allDay": false,
+      "source": "lms"
+    }
+  ]
+}
+```
+
+> **`title`·`courseName`은 이 응답에 포함되지 않습니다.** 요청자 본인의 일정이든 다른 팀원의 일정이든 예외 없이 제외합니다 — Heatmap·부담도 계산에 필요 없는 개인정보를 응답 스키마 자체에서 제거하는 방식입니다.
+
+**에러**
+
+| Status | code | 상황 |
+|---|---|---|
+| 400 | `INVALID_TEAM_ID` | `teamId`가 UUID 형식이 아님 |
+| 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
+| 403 | `FORBIDDEN` | 요청자가 그 팀 소속이 아님 (팀이 존재하지 않는 경우도 이 코드로 응답 — 존재 여부를 구분해 알려주지 않음) |
+| 500 | `INTERNAL_ERROR` | 서버 오류 |
+
+**미확정 — 다음 합의 필요**: 기간 필터(`from`/`to`) 파라미터 형식과 의미. 필요해지면 F6·F7과 합의 후 `DRAFT`를 갱신합니다.
+
+### POST /api/schedules/import   `DRAFT`
+
+F3가 정제 완료한 일정 배열을 로그인한 사용자 본인의 일정으로 저장·갱신합니다. / 담당: 역할 3·4 / 합의: (F2·F3 확인 대기)
+
+**인증** 필요 — `Authorization: Bearer <token>`
+
+**Request**
+```json
+{
+  "items": [
+    {
+      "id": "string · 필수 · F3 의 source event id",
+      "title": "string · 필수",
+      "type": "assignment | exam | class | other | unknown · 필수",
+      "startAt": "ISO 8601 UTC | null",
+      "endAt": "ISO 8601 UTC | null",
+      "allDay": "boolean · 필수",
+      "courseName": "string | null",
+      "source": "\"lms\" 고정"
+    }
+  ]
+}
+```
+
+**Response 200**
+```json
+{
+  "importedCount": 2
+}
+```
+
+> DB 내부 uuid(`schedules.id`)를 노출할 필요가 없어 반환하지 않습니다. 목록이 아니라 처리 결과 요약이라 `{ "items": [...] }` 포맷은 쓰지 않았습니다 (요청 바디만 목록 포맷을 따릅니다).
+
+**저장 규칙**
+
+- `userId`는 요청에 받지 않습니다. **`schedules.user_id`는 항상 `Authorization` 토큰에서 검증된 사용자**입니다.
+- 필드 매핑: `id`→`source_event_id`, `startAt`→`starts_at`, `endAt`→`ends_at`, `allDay`→`all_day`, `courseName`→`course_name`. 나머지는 이름만 snake_case로.
+- **재수집 시 UPSERT** — conflict 기준은 `UNIQUE(user_id, source_event_id)`. 같은 일정이 다시 오면 새 행을 만들지 않고 `title`·`type`·`starts_at`·`ends_at`·`all_day`·`course_name`·`source`를 최신값으로 갱신합니다. **`created_at`은 갱신 대상에서 제외**되어 최초 저장 시각이 유지됩니다.
+- `sourceUrl`·`module`·`scope`·LMS ID/PW/세션/원본 HTML은 **받지도 저장하지도 않습니다.**
+
+**에러**
+
+| Status | code | 상황 |
+|---|---|---|
+| 400 | `INVALID_SCHEDULES` | `items`가 배열이 아니거나, 항목 하나라도 형식에 맞지 않음 (개인 일정 제목이 섞여 있을 수 있어 어떤 항목이 틀렸는지는 알리지 않음) |
+| 401 | `UNAUTHORIZED` | 토큰 없음 · 유효하지 않음 |
+| 500 | `INTERNAL_ERROR` | 서버 오류 |
