@@ -69,10 +69,10 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 |---|---|---|---|---|
 | | | 브라우저 수집 결과 전달 (F2 → F3·F4) | 역할 2·3·4 | **합의 대기** |
 | | | 팀 단위 일정 조회 (F4 → F6·F7) | 역할 4 | **합의 대기** |
-| | | 부담도·여유도 결과 조회 (F7 → F6) | 역할 6·7 | **합의 대기** |
+| GET | `/api/teams/{teamId}/heatmap` | 부담도·여유도 결과 조회 (F7 → F6) | 역할 6·7 | **합의완료** |
 
 **`Method`·`Path`가 비어 있는 것은 아직 정해지지 않았다는 뜻입니다.**
-위 3개는 [FEATURES.md](FEATURES.md)가 등재를 요구하는 계약이고, **경로·필드·에러 code 중 확정된 것이 하나도 없습니다.** 확정된 명세로 취급하지 마세요.
+위 3개는 [FEATURES.md](FEATURES.md)가 등재를 요구하는 계약입니다. **상태가 `합의완료`로 표시된 항목만 확정된 명세이고, 나머지는 아직 확정된 것이 하나도 없습니다.** `합의 대기`·`DRAFT` 항목을 확정된 명세로 취급하지 마세요.
 
 상태는 이 순서로 올립니다.
 
@@ -118,3 +118,73 @@ FE/BE가 합의한 것만 추가합니다. 구현을 시작하기 전에 이 표
 | 400 | | |
 | 404 | | |
 ````
+
+---
+
+## 합의완료 상세 — 부담도·여유도 결과 조회 (F7 → F6)
+
+### GET /api/teams/{teamId}/heatmap   `합의완료`
+
+팀 여유도(시간대별 가능 인원) 조회. / 담당: 역할 6·7 / 합의: 역할 6과 2026-08-19 합의
+
+**인증** 필요
+
+**Request**
+
+`teamId`는 path parameter로 받는다 (query·body에 숨기지 않는다).
+
+| 파라미터 | 위치 | 필수 | 설명 |
+|---|---|---|---|
+| `teamId` | path | 필수 | 조회할 팀 ID |
+| `from` | query | 필수 | 조회 시작 날짜 (`YYYY-MM-DD`, **KST 기준**). 이 날짜부터 **7일치**를 반환한다 |
+
+**타임존 원칙** (공통 규칙의 "저장·전송은 UTC" 예외 — 이 엔드포인트는 아래처럼 단계별로 다르게 다룬다)
+
+| 단계 | 기준 |
+|---|---|
+| DB / 일정 원본 저장·전송 | UTC |
+| F7 계산 내부 처리 | UTC → `Asia/Seoul`로 변환해서 계산 |
+| 이 응답의 `date`·`hour` | **이미 KST로 집계된 값** (UTC가 아니다) |
+
+**Response 200**
+```json
+{
+  "items": [
+    {
+      "date": "2026-08-19",
+      "hour": 14,
+      "totalCount": 7,
+      "availableCount": 3,
+      "availabilityRate": 0.43,
+      "members": [
+        { "userId": "...", "displayName": "팀원1", "available": true }
+      ]
+    },
+    {
+      "date": "2026-08-19",
+      "hour": 15,
+      "totalCount": 7,
+      "availableCount": null,
+      "availabilityRate": null,
+      "members": null
+    }
+  ]
+}
+```
+
+| 필드 | 설명 |
+|---|---|
+| `date` | **KST 기준** 날짜 (`YYYY-MM-DD`) |
+| `hour` | **KST 기준** 시각, 0~23 |
+| `totalCount` | 팀 전체 인원 수. 데이터 유무와 무관하게 항상 값이 있다 |
+| `availableCount` | 해당 시간대에 여유로운 인원 수. **그 시간대를 계산할 팀원 데이터 자체가 없으면 `null`** (7명 전원이 바빠서 0명인 것과 구분한다) |
+| `availabilityRate` | `availableCount / totalCount`. `availableCount`가 `null`이면 `null` |
+| `members` | 팀원별 상세. 최소 정보만: `userId`, `displayName`, `available`. `availableCount`가 `null`이면 마찬가지로 `null` |
+
+**에러**
+
+| Status | code | 상황 |
+|---|---|---|
+| 401 | | 토큰 없음·만료 |
+| 403 | | 팀 소속 아님 |
+| 404 | | 팀 없음 |
