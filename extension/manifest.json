@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "WhenWe LMS 연동",
+  "version": "0.1.0",
+  "description": "경기대 LMS 캘린더 일정을 WhenWe로 가져옵니다. LMS 로그인 세션·쿠키는 LMS 탭을 벗어나지 않습니다.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://lms.kyonggi.ac.kr/*"],
+      "js": ["lib/lms-bundle.generated.js", "content-lms.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://when-we.vercel.app/*"],
+      "js": ["content-whenwe.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": [
+    "https://lms.kyonggi.ac.kr/*",
+    "https://when-we.vercel.app/*",
+    "https://when-we-backend.vercel.app/*"
+  ],
+  "permissions": ["tabs", "scripting"]
+}
