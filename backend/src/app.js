@@ -3,6 +3,7 @@ import cors from 'cors';
 import teamsRouter from './routes/teams.js';
 import schedulesRouter from './routes/schedules.js';
 import lmsRouter from './routes/lms.js';
+import heatmapRouter from './routes/heatmap.js';
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/teams', teamsRouter);
+app.use('/api/teams', heatmapRouter);
 app.use('/api/schedules', schedulesRouter);
 app.use('/api/lms', lmsRouter);
 
