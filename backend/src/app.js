@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import authRouter from './routes/auth.js';
 import teamsRouter from './routes/teams.js';
 import schedulesRouter from './routes/schedules.js';
 import lmsRouter from './routes/lms.js';
@@ -16,6 +17,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.use('/api/auth', authRouter);
 app.use('/api/teams', teamsRouter);
 app.use('/api/teams', heatmapRouter);
 app.use('/api/schedules', schedulesRouter);
