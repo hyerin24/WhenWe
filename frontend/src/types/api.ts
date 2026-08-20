@@ -63,5 +63,34 @@ export interface JoinResult {
   joinedAt: string // ISO 8601 UTC
 }
 
-// ── 여유도 (Role 6) ───────────────────────────────────
-// (Role 6 담당자가 여기에 추가합니다)
+// ── 여유도 (Role 6·7) ───────────────────────────────────
+// GET /api/teams/{teamId}/heatmap `합의완료` (docs/api.md)
+
+export interface HeatmapMember {
+  userId: string
+  displayName: string
+  available: boolean
+}
+
+export interface HeatmapItem {
+  date: string // KST YYYY-MM-DD
+  hour: number // KST 0~23
+  totalCount: number
+  /** 그 시간대를 계산할 팀원 데이터 자체가 없으면 null (0명 가능과 구분) */
+  availableCount: number | null
+  availabilityRate: number | null
+  members: HeatmapMember[] | null
+}
+
+export interface DueAssignment {
+  date: string
+  hour: number | null
+  userId: string
+  displayName: string
+  courseName: string | null
+}
+
+export interface HeatmapResponse {
+  items: HeatmapItem[]
+  dueAssignments: DueAssignment[]
+}

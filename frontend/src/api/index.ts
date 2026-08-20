@@ -11,8 +11,10 @@
  */
 import { authApi as realAuthApi } from './auth'
 import { teamsApi as realTeamsApi } from './teams'
+import { heatmapApi as realHeatmapApi } from './heatmap'
 import { mockAuthApi, MOCK_ACCOUNTS } from './mock/auth.mock'
 import { mockTeamsApi, MOCK_JOINABLE_CODES } from './mock/teams.mock'
+import { mockHeatmapApi } from './mock/heatmap.mock'
 
 /**
  * 기본값은 mock 입니다. .env 가 없어도 clone 직후 바로 화면이 떠야 하기 때문입니다.
@@ -22,6 +24,7 @@ export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
 
 export const auth = USE_MOCK ? mockAuthApi : realAuthApi
 export const teams = USE_MOCK ? mockTeamsApi : realTeamsApi
+export const heatmap = USE_MOCK ? mockHeatmapApi : realHeatmapApi
 
 export { ApiError, setAccessToken } from './client'
 export { MIN_PASSWORD_LENGTH, LOGIN_ID_RULE, validateLoginId } from './auth'
