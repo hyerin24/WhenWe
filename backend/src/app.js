@@ -9,7 +9,30 @@ import heatmapRouter from './routes/heatmap.js';
 const app = express();
 
 // CORS_ORIGIN 이 없으면 프론트 기본 개발 포트를 씁니다 (.env.example 참고).
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
+// 콤마로 여러 origin 을 허용할 수 있습니다 — 배포 프론트(when-we.vercel.app)와
+// LMS 탭(lms.kyonggi.ac.kr, 브라우저에서 F2 sendLmsSchedules 가 직접 POST 하는 origin)을
+// 함께 허용해야 하는 경우가 여기 해당합니다. 목록에 없는 origin은 거부합니다 (`*` 금지).
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // origin 이 없는 요청(서버 간 호출·curl 등)은 브라우저가 아니므로 그대로 통과시킵니다.
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      const err = new Error('허용되지 않은 origin 입니다.');
+      err.status = 403;
+      err.code = 'CORS_NOT_ALLOWED';
+      err.expose = true;
+      callback(err);
+    },
+  }),
+);
 app.use(express.json());
 
 // 서버 상태 확인용. 서비스 기능 API가 아니므로 docs/api.md 계약 대상이 아닙니다.

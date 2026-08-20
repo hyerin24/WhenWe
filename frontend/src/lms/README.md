@@ -60,8 +60,8 @@ const all = mergeParsedCalendars([parsed, day])       // 시각 있는 쪽이 �
 
 ## 출력 형태
 
-`docs/api.md`의 [POST /api/lms/schedules `DRAFT`](../../../docs/api.md#post-apilmsschedules---draft)와 같습니다.
-**경로·필드는 역할 3·4와 합의 전(DRAFT)입니다.**
+`docs/api.md`의 [POST /api/lms/schedules `합의완료`](../../../docs/api.md#post-apilmsschedules---합의완료)와 같습니다.
+**F2·F3·F4 확인 완료(2026-08-20)** — 경로·필드가 확정되었습니다.
 
 파싱하지 못한 항목은 조용히 버리지 않고 `parseFailures`에 **사유·날짜·순번만** 남깁니다.
 LMS가 날짜 칸에 표시하는 개수(`title="5 일정"`)와 실제로 뽑은 개수가 다르면
@@ -103,3 +103,31 @@ fetch가 `credentials: 'include'`로 본인 세션을 쓰기 때문에, **반드
 
 > ⚠️ **가져온 HTML·일정을 저장소에 커밋하지 마세요.** 개인 일정이 들어 있습니다.
 > 저장해야 하면 `*.local.html`로 저장합니다 ([.gitignore](../../../.gitignore)).
+
+## 배포 환경에서 서버로 보내기
+
+`sendLmsSchedules()`의 `DRAFT_ENDPOINT`(`/api/lms/schedules`, 상대경로)는 **LMS 탭에서 실행하면
+`lms.kyonggi.ac.kr` 자신에게 요청이 갑니다.** 배포된 WhenWe 백엔드로 보내려면 `endpoint` 옵션에
+**절대경로**를 명시적으로 넘겨야 합니다 (함수 자체는 이미 이 옵션을 지원하므로 코드 수정이 필요 없습니다).
+
+```js
+await sendLmsSchedules(parsed, {
+  accessToken,                                          // WhenWe 로그인 세션의 access token
+  endpoint: 'https://when-we-backend.vercel.app/api/lms/schedules',
+})
+```
+
+- `accessToken`은 WhenWe(`https://when-we.vercel.app`)에 로그인한 뒤 **팀 화면의 "LMS 일정 가져오는 방법"**
+  패널에서 복사할 수 있습니다 (`useAuth()`가 세션의 access token을 노출합니다). LMS 콘솔에는 이 토큰만 붙여넣고,
+  학교 ID·PW·LMS 쿠키는 그대로 브라우저에 남습니다.
+- 백엔드 CORS는 `https://when-we.vercel.app`과 `https://lms.kyonggi.ac.kr` 두 origin만 허용하도록 되어 있습니다
+  (`CORS_ORIGIN` 환경변수, 콤마 구분). 다른 origin에서 호출하면 403 `CORS_NOT_ALLOWED`가 돌아옵니다.
+- 성공하면 `{ importedCount }`가 응답으로 옵니다. 팀 Heatmap 화면에서 반영 여부를 확인합니다.
+
+## 시연 절차 요약
+
+1. `https://when-we.vercel.app`에서 로그인
+2. 경기대 LMS에 로그인 (별도 탭)
+3. LMS 탭 콘솔에서 [확인 방법](#확인-방법)대로 F1~F2 코드를 붙여넣어 `parsed` 생성
+4. WhenWe 팀 화면에서 복사한 위 스니펫(accessToken·endpoint 포함)을 이어서 실행
+5. `{ importedCount }` 응답 확인 → WhenWe Heatmap에서 반영 확인

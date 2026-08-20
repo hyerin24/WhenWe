@@ -15,6 +15,12 @@ import type { AuthUser } from '@/types/api'
 
 interface AuthContextValue {
   user: AuthUser | null
+  /**
+   * 현재 세션의 Supabase access token.
+   * LMS 탭 콘솔에서 F2 sendLmsSchedules() 를 실행할 때 붙여넣기용으로만 노출합니다
+   * (frontend/src/lms/README.md — 시연 절차). 그 외 컴포넌트는 이 값으로 직접 fetch 하지 않습니다.
+   */
+  accessToken: string | null
   /** 새로고침 직후 저장된 세션을 복원하는 중 */
   isLoading: boolean
   signIn: (loginId: string, password: string) => Promise<void>
@@ -31,6 +37,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [accessToken, setAccessTokenState] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSigningIn, setIsSigningIn] = useState(false)
   const [signInError, setSignInError] = useState<Error | null>(null)
@@ -47,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = auth.onSessionChange((session) => {
       if (cancelled) return
       setAccessToken(session?.accessToken ?? null)
+      setAccessTokenState(session?.accessToken ?? null)
       setUser(session?.user ?? null)
     })
 
@@ -56,10 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
         setUser(session?.user ?? null)
         setAccessToken(session?.accessToken ?? null)
+        setAccessTokenState(session?.accessToken ?? null)
       })
       .catch(() => {
         // 세션 복원 실패는 "로그아웃 상태"와 같습니다. 화면에 에러를 띄우지 않습니다.
-        if (!cancelled) setUser(null)
+        if (!cancelled) {
+          setUser(null)
+          setAccessTokenState(null)
+        }
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -76,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const session = await auth.signIn(loginId, password)
       setAccessToken(session.accessToken)
+      setAccessTokenState(session.accessToken)
       setUser(session.user)
     } catch (e) {
       const error = e instanceof Error ? e : new Error('로그인에 실패했습니다.')
@@ -93,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { session } = await auth.signUp(loginId, password)
       if (!session) return true // 별도 승인 필요 — 아직 로그인 상태가 아닙니다
       setAccessToken(session.accessToken)
+      setAccessTokenState(session.accessToken)
       setUser(session.user)
       return false
     } catch (e) {
@@ -107,14 +121,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await auth.signOut()
     setAccessToken(null)
+    setAccessTokenState(null)
     setUser(null)
     setSignInError(null)
     setSignUpError(null)
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isLoading, signIn, signUp, signOut, isSigningIn, signInError, isSigningUp, signUpError }),
-    [user, isLoading, signIn, signUp, signOut, isSigningIn, signInError, isSigningUp, signUpError],
+    () => ({
+      user,
+      accessToken,
+      isLoading,
+      signIn,
+      signUp,
+      signOut,
+      isSigningIn,
+      signInError,
+      isSigningUp,
+      signUpError,
+    }),
+    [user, accessToken, isLoading, signIn, signUp, signOut, isSigningIn, signInError, isSigningUp, signUpError],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
