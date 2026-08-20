@@ -26,7 +26,7 @@ export const auth = USE_MOCK ? mockAuthApi : realAuthApi
 export const teams = USE_MOCK ? mockTeamsApi : realTeamsApi
 export const heatmap = USE_MOCK ? mockHeatmapApi : realHeatmapApi
 
-export { ApiError, setAccessToken } from './client'
+export { ApiError, setAccessToken, BASE_URL } from './client'
 export { MIN_PASSWORD_LENGTH, LOGIN_ID_RULE, validateLoginId } from './auth'
 export { INVITE_CODE_LENGTH } from './teams'
 
