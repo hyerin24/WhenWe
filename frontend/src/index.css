@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Tailwind v4 는 postcss.config.js / tailwind.config.js 가 필요 없습니다.
+   vite.config.ts 의 @tailwindcss/vite 플러그인 + 위 한 줄이면 끝입니다. */
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
