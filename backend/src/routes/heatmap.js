@@ -65,10 +65,29 @@ router.get('/:teamId/heatmap', requireAuth, async (req, res) => {
     return res.status(500).json({ code: 'INTERNAL_ERROR', message: '팀원 목록을 조회하지 못했습니다.' });
   }
 
-  // TODO(F4 확인 필요): displayName 을 어디서 가져올지 아직 답을 못 받았다.
-  // 받는 대로 이 부분만 실제 이름으로 교체하면 된다.
-  const members = memberRows.map((m) => ({ userId: m.user_id, displayName: null }));
-  const userIds = members.map((m) => m.userId);
+  const userIds = memberRows.map((m) => m.user_id);
+
+  // 이름은 auth.users 가 아니라 public.profiles 에 있다 (F4 확인).
+  // profiles.id 가 auth.users.id 와 1:1이라 team_members.user_id 로 그대로 조회된다.
+  // getUserById 를 인원수만큼 부르지 않고 한 번에 모아서 가져온다.
+  const { data: profileRows, error: profilesError } = await admin
+    .from('profiles')
+    .select('id, display_name, username')
+    .in('id', userIds);
+
+  if (profilesError) {
+    console.error('profiles lookup failed', profilesError);
+    return res.status(500).json({ code: 'INTERNAL_ERROR', message: '팀원 이름을 조회하지 못했습니다.' });
+  }
+
+  // display_name 을 아직 안 정한 사용자는 username 으로 대신 보여준다 (F4 확인).
+  const displayNameById = new Map(
+    profileRows.map((p) => [p.id, p.display_name ?? p.username ?? null])
+  );
+  const members = userIds.map((userId) => ({
+    userId,
+    displayName: displayNameById.get(userId) ?? null,
+  }));
 
   const { data: scheduleRows, error: schedulesError } = await admin
     .from('schedules')
