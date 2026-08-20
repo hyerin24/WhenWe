@@ -222,3 +222,13 @@ git merge origin/develop     # develop의 최신 내용을 내 브랜치로 가�
 | `/commit-pr` | 변경을 분석해 커밋 → push → PR 생성까지 진행합니다 |
 
 > 스킬은 **Claude Code를 재시작해야** 목록에 나타납니다.
+
+### `.claude/` 는 팀 공용입니다
+
+| 파일 | 무엇 | 고치는 방법 |
+|---|---|---|
+| `.claude/settings.json` | **팀 전원에게 적용되는 공용 설정** (Secret·파괴적 명령 차단) | **직접 고치지 마세요.** 단톡에서 합의한 뒤 **PR로** 변경합니다 |
+| `.claude/settings.local.json` | 내 개인 설정 | 각자 자유롭게. 커밋되지 않습니다 |
+
+> ⚠️ `settings.json`의 **JSON 모양이 깨지면 설정이 통째로 무시되고, 그런데 에러가 뜨지 않습니다.**
+> 손으로 편집하지 말고 Claude Code에게 시키세요.
