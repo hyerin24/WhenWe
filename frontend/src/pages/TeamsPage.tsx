@@ -36,9 +36,8 @@ export function TeamsPage() {
       </section>
 
       {/*
-        LMS 일정 가져오기 — 자리만 잡아둔 버튼입니다.
-        TODO(F1·F2): 실제 수집은 브라우저에서 LMS Calendar 를 fetch·파싱하는 F1·F2 담당 모듈이
-        붙습니다(src/features/collect/). 서버가 대신 로그인하지 않습니다 — CLAUDE.md 참고.
+        LMS 일정 가져오기 — 브라우저 same-origin 정책상 이 화면에서 직접 LMS를 fetch할 수 없어
+        (frontend/src/lms/README.md 참고), 안내 UI만 제공합니다. F1·F2 코드 자체는 그대로 둡니다.
       */}
       <section className="rounded-md border border-slate-200 bg-white p-4">
         <h2 className="text-sm font-semibold">LMS 일정</h2>
@@ -49,9 +48,10 @@ export function TeamsPage() {
           LMS 일정 가져오기
         </Button>
         {importNotice && (
-          <p className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-            아직 연결되지 않았습니다. 수집 기능(F1·F2)이 붙으면 동작합니다.
-          </p>
+          <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            <p>이 화면에서 바로 가져올 수는 없습니다. LMS 로그인 상태에서 별도 수집 절차가 필요합니다.</p>
+            <p className="mt-1">현재는 학교 LMS 페이지에서 실행하는 별도 방법이 필요하며, 자세한 절차는 담당자에게 문의해주세요.</p>
+          </div>
         )}
       </section>
     </main>

@@ -1,19 +1,39 @@
 /**
  * Heatmap 화면 (Role 6 / F6 담당 영역).
- * 지금은 Mock 데이터로 그립니다. F7(부담도·여유도 계산) API가 확정되면 실제 데이터로 교체합니다.
+ * GET /api/teams/{teamId}/heatmap (F7, docs/api.md 합의완료) 실제 데이터로 그린다.
  */
 import { Link, useSearchParams } from 'react-router-dom'
 import CalendarHeatmap from '@/components/CalendarHeatmap'
-import { HOURS, MONTH_DATES } from '@/mock/heatmap'
-import { generateMockHeatmapWithMembers } from '@/mock/heatmapWithMembers'
+import { useHeatmap } from '@/hooks/useHeatmap'
 
-const mockResponseWithMembers = generateMockHeatmapWithMembers()
+function todayKst(): string {
+  // 저장·계산은 UTC지만 이 응답의 date/hour는 이미 KST로 집계된 값이다 (docs/api.md).
+  const now = new Date()
+  const kst = new Date(now.getTime() + (9 * 60 - now.getTimezoneOffset()) * 60 * 1000)
+  return kst.toISOString().slice(0, 10)
+}
 
 export function HeatmapPage() {
   // 팀 목록에서 팀 카드를 누르면 ?teamId= 로 넘어옵니다.
-  // TODO(F6): 팀 선택 방식(쿼리 파라미터 vs /teams/:teamId/heatmap)은 Role 6 가 정합니다.
   const [searchParams] = useSearchParams()
   const teamId = searchParams.get('teamId')
+  const from = todayKst()
+
+  const { data, isLoading, error } = useHeatmap(teamId, from)
+
+  const items = (data?.items ?? [])
+    // availableCount가 null인 시간대는 "데이터 없음"으로 보이도록 아예 뺀다 (CalendarHeatmap 규칙).
+    .filter((item) => item.availableCount !== null)
+    .map((item) => ({
+      date: item.date,
+      hour: item.hour,
+      availableCount: item.availableCount as number,
+      totalCount: item.totalCount,
+      members: (item.members ?? []).map((m) => ({ name: m.displayName, available: m.available })),
+    }))
+
+  const dates = Array.from(new Set((data?.items ?? []).map((item) => item.date))).sort()
+  const hours = Array.from(new Set((data?.items ?? []).map((item) => item.hour))).sort((a, b) => a - b)
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
@@ -22,7 +42,7 @@ export function HeatmapPage() {
       </Link>
       <h1 className="mt-4 text-2xl font-bold">팀 Calendar Heatmap</h1>
       <p className="mt-2 text-sm text-slate-500">
-        Mock 데이터입니다. F7(부담도·여유도 계산) API가 확정되면 실제 데이터로 교체합니다.
+        {from}부터 7일간의 팀원 여유도입니다.
         {teamId && (
           <>
             {' '}
@@ -32,12 +52,18 @@ export function HeatmapPage() {
       </p>
 
       <section className="mt-8">
-        <h2 className="text-lg font-medium">팀원별 상세형 — 협의용 데모</h2>
-        <p className="mt-1 mb-3 text-sm text-slate-500">
-          칸을 클릭하면 누가 되고 안 되는지까지 나옵니다. 아직 api.md에 없는 형태라 역할4·역할7과
-          합의되면 이 버전으로 교체합니다.
-        </p>
-        <CalendarHeatmap items={mockResponseWithMembers.items} dates={MONTH_DATES} hours={HOURS} />
+        {!teamId && (
+          <p className="text-sm text-slate-500">먼저 팀을 선택해주세요. (내 팀 목록에서 팀을 눌러 들어옵니다)</p>
+        )}
+        {teamId && isLoading && <p className="text-sm text-slate-500">불러오는 중…</p>}
+        {teamId && error && (
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error.message}
+          </p>
+        )}
+        {teamId && !isLoading && !error && (
+          <CalendarHeatmap items={items} dates={dates} hours={hours} />
+        )}
       </section>
     </main>
   )
